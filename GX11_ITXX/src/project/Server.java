@@ -1,9 +1,25 @@
 package project;
 
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.SocketException;
+
 public class Server {
 	
+	DatagramPacket sendPacket, receivePacket;
+	DatagramSocket sendSocket, receiveSocket;
+
 	Commons common = new Commons("SERVER");
-	int port_address =  69;
+	private int port_address =  69;
+
+	public Server() {
+		try {
+			receiveSocket = new DatagramSocket(port_address);
+		} catch (SocketException se) {
+			se.printStackTrace();
+			System.exit(1);
+		}
+	}
 	
 	private void handleReadRequest() {
 
@@ -25,6 +41,8 @@ public class Server {
 	public void startListening() {
 		// listen to the port needed for requests 
 		// create threads to handle these req. received
+		Thread requestListenerThread = new Thread(new RequestListener(receiveSocket));
+		requestListenerThread.start();
 		// One thread will wait on port 69 for UDP datagrams (that should contain RRQ or WRQ packets)
 		// create another thread (call it the client connection thread), and pass it the TFTP packet to deal with
 		this.handleRequest(); // send data along
