@@ -2,6 +2,10 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream; 
+import java.io.OutputStream;
 
 public class Server {
 	
@@ -46,10 +50,12 @@ public class Server {
 	}
 
 	public static void main(String[] args) {
-		// TODO Auto-generated method stub
+		// TODO Auto-generated method stub    
 		Server listener = new Server();
 		listener.listen();
+		
 	}
+	
 }
 
 /**
@@ -59,6 +65,8 @@ class Client_Connection_Thread implements Runnable
 {
 	DatagramPacket receivePacket, sendPacket;
 	DatagramSocket sendReceiveSocket; 
+	String FILEPATH;
+	OutputStream os;
 	
 	/**
 	 * Constructor for client connection thread class
@@ -71,35 +79,126 @@ class Client_Connection_Thread implements Runnable
 			se.printStackTrace();
 			System.exit(1);
 		}
-		receivePacket = p; 	
+		receivePacket = p;
+		//get the filepath from read request
+		int p1 = 0;//index position of the first 0 byte in the message 
+		int len = receivePacket.getLength();//length of meaningful data
+		for(int i=2;i<len;i++) {//find first 0 
+			if(receivePacket.getData()[i] == (byte) 0) {//found parse point when 0 is found 
+				p1 = i;
+				break;
+			}				
+		}
+		byte[] filename = new byte[p1-2];
+		for(int i = 2; i<filename.length+2;i++) {
+			filename[i-2] = receivePacket.getData()[i]; 
+		}
+		FILEPATH = new String(filename,0,filename.length); 
+		File f = new File(FILEPATH);
+		os = this.openwrite(f);
+		
+		
+		
 		//send ACK data block code should be below
 	}
+	/**
+	 * Set up the output stream for writing the data.
+	 * @param file file to write to.
+	 * @return outputstream to write with
+	 */
+	public OutputStream openwrite(File file) {
+		OutputStream os = null;
+		try {
+			os = new FileOutputStream(file);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return os;
+	}
 	
+	/**
+	 * Close the outputstream when done writing to file
+	 * @param os output stream to close
+	 */
+	public void closewrite(OutputStream os) {
+		try {
+			os.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Write bytes to file.
+	 * @param bytes data to be written to file
+	 * @param os output stream to use
+	 */
+	public void writeByte(byte[] bytes,OutputStream os) 
+	    { 
+	        try { 
+	  
+	            // Starts writing the bytes in it 
+	            os.write(bytes);
+	        }catch (Exception e) { 
+	            System.out.println("Exception: " + e); 
+	        } 
+	    }
+	
+	/*
+	 * (non-Javadoc)
+	 * @see java.lang.Runnable#run()
+	 */
 	public void run() {
-		byte[] data = new byte[512];//not sure
-		receivePacket = new DatagramPacket(data,data.length);
-		// receive first block of data
-		try {
-			sendReceiveSocket.receive(receivePacket);
-		}catch(IOException e) {
-			//check out what errors should do
-			e.printStackTrace();
-			System.exit(1);
-		}
-		/**
-		 * Code to extract and write data to file should be here. 
-		 */
+		while(true) {
+			byte[] data = new byte[512];//not sure
+			receivePacket = new DatagramPacket(data,data.length);
+			
+			// receive first block of data
+			try {
+				sendReceiveSocket.receive(receivePacket);
+			}catch(IOException e) {
+				//check out what errors should do
+				e.printStackTrace();
+				System.exit(1);
+			}
+			
+			System.out.println("Server: Packet received!");
+			/**
+			 * Code to extract and write data to file.
+			 */
+			int len = receivePacket.getLength();
+			byte[] filedata = new byte[len-4];//first 4 bytes in receivePacket are not data
+			for(int i=4;i<len;i++) {
+				filedata[i-4] = receivePacket.getData()[i];
+				}
+			
+			this.writeByte(filedata, os);
+			//need to close the outputstream somewhere.
+			
 		
-		/**
-		 * code to form ack data block should be here
-		 */
-		try {
-			sendReceiveSocket.send(sendPacket);
-		}catch(IOException e) {
-			e.printStackTrace();
-			System.exit(1);
+			
+			/**
+			 * code to form ack data block
+			 */
+			byte[] ack = new byte[4];
+			ack[0] = (byte) 0;
+			ack[1] = (byte) 4;
+			ack[2] = receivePacket.getData()[2];
+			ack[3] = receivePacket.getData()[3];
+			
+			sendPacket = new DatagramPacket(ack,ack.length);
+			
+			try {//send ACK block
+				sendReceiveSocket.send(sendPacket);
+			}catch(IOException e) {
+				e.printStackTrace();
+				System.exit(1);
+			}
+			
 		}
-	}	
+	}		
 }
 
 
