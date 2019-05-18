@@ -70,7 +70,7 @@ public class Client {
 		// TODO - Clean this up. Yuck!!
 		// generate read request header
 		byte[] data = this.generatePacket(file_name_to_read, 1);
-		DatagramPacket readRequestPacket = new DatagramPacket(data, data.length, InetAddress.getLocalHost(), input_grabber.server_port);
+		DatagramPacket readRequestPacket = new DatagramPacket(data, data.length, input_grabber.server_address, input_grabber.server_port);
 		DatagramPacket responseFromServer = common.sendRequestAndWaitOnResponse(this.sendReceiveSocket,readRequestPacket);
 		int blocks_received = 1;
 		byte[] curr_response = common.filterPackage(responseFromServer);
@@ -121,7 +121,7 @@ public class Client {
 	private void writeRequest(String file_name_to_read, String file_name_to_write_to) throws UnknownHostException {
 		// generate write request header
 		byte[] data = this.generatePacket(file_name_to_write_to, 2);
-		DatagramPacket writeRequestPacket = new DatagramPacket(data, data.length, InetAddress.getLocalHost(), input_grabber.server_port);
+		DatagramPacket writeRequestPacket = new DatagramPacket(data, data.length, input_grabber.server_address, input_grabber.server_port);
 		DatagramPacket responseFromServer = common.sendRequestAndWaitOnResponse(this.sendReceiveSocket, writeRequestPacket);
 
 		// confirm it is acknowledged
