@@ -12,6 +12,9 @@ public class Commons {
 		//	Class name for the class creating the commons object
 		classtype = name;
 	}
+	public String getClassName() {
+		return this.classtype;
+	}
 	
 	public byte[] stringToByte(String example_text) {
 		//	Converts String provided to Byte Array
@@ -135,7 +138,7 @@ public class Commons {
 		return true;
 	}
 	
-	public byte[] blockNumToTwoBytes(int block_number) {
+	private byte[] blockNumToTwoBytes(int block_number) {
 		// Given an int block number, returns 2 bytes of block number to be used in ack packets.
 		byte[] block_num_data = new byte[2];
 		block_num_data[0] = this.intToByte(0);
