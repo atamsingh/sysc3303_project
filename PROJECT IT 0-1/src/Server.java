@@ -6,20 +6,24 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream; 
 import java.io.OutputStream;
+import java.util.Scanner;
 
 public class Server {
 	
 	
 	DatagramSocket receiveSocket;
 	DatagramPacket receivePacket;
+	int verbose;
 	
 	/**
 	 * Constructor for the server listener class
 	 * Initializes socket on port 69
 	 */
+	@SuppressWarnings("resource")
 	public Server() {
 		try {
 			receiveSocket = new DatagramSocket(69);
+			
 		}catch(SocketException se) {
 			se.printStackTrace();
 			System.exit(1);
@@ -44,7 +48,7 @@ public class Server {
 			}
 			//packet received --create client connection thread--
 			System.out.println("Server: Packet received, creating client connection thread");
-			if(receivePacket.getData()[1]== (byte)1) {//read request
+			if(receivePacket.getData()[1]== (byte)1) {//read request			
 				Thread CRT = new Thread(new Client_Read_Thread(receivePacket),"client read thread");
 				CRT.start();
 			}else{//write request
@@ -179,14 +183,20 @@ class Client_Write_Thread implements Runnable
 	DatagramSocket sendReceiveSocket; 
 	String FILEPATH;
 	OutputStream os;
+	int verbose;
 	
 	/**
 	 * Constructor for client write thread class. 
 	 * @param p - packet received from listener server
 	 */
+	@SuppressWarnings("resource")
 	public Client_Write_Thread(DatagramPacket p) {
 		try {
 			sendReceiveSocket = new DatagramSocket();
+			System.out.println("Enter 1 for verbose mode or 0 for quiet mode!: ");
+			Scanner scanner = new Scanner(System.in);
+			verbose = scanner.nextInt();//verbose mode will print out packet details
+			
 		}catch(SocketException se) {
 			se.printStackTrace();
 			System.exit(1);
@@ -206,6 +216,11 @@ class Client_Write_Thread implements Runnable
 			filename[i-2] = receivePacket.getData()[i]; 
 		}
 		FILEPATH = new String(filename,0,filename.length); 
+		if(verbose == 1) {
+			System.out.println("Packet type: WRQ");
+			System.out.println("Filepath to write to: " + FILEPATH);
+			
+		}
 		File f = new File(FILEPATH);
 		os = this.openwrite(f);
 		
@@ -289,7 +304,7 @@ class Client_Write_Thread implements Runnable
 				System.exit(1);
 			}
 			
-			System.out.println("Server: Packet received!");
+			System.out.println("Write Connection Thread: Packet received!");
 			/**
 			 * Code to extract and write data to file.
 			 */
@@ -301,6 +316,14 @@ class Client_Write_Thread implements Runnable
 			
 			this.writeByte(filedata, os);
 			//need to close the outputstream somewhere.
+			
+			//print details verbose mode
+			if(verbose==1) {
+				System.out.println("From host: " + receivePacket.getAddress());
+		        System.out.println("Host port: " + receivePacket.getPort());
+				System.out.println("Block number is: "+ receivePacket.getData()[0]+ " "+ receivePacket.getData()[1]);
+				System.out.println("Number of bytes: "+ len);
+			}
 			
 		
 			
