@@ -41,8 +41,6 @@ public class Server {
 	public void startListening() {
 		// listen to the port needed for requests 
 		// create threads to handle these req. received
-		Thread requestListenerThread = new Thread(new RequestListener(receiveSocket));
-		requestListenerThread.start();
 		// One thread will wait on port 69 for UDP datagrams (that should contain RRQ or WRQ packets)
 		// create another thread (call it the client connection thread), and pass it the TFTP packet to deal with
 		this.handleRequest(); // send data along
@@ -53,11 +51,22 @@ public class Server {
 		// get ready to accept 
 		//  supporting multiple concurrent read and write connections with different clients
 		// For each RRQ, the server should respond with DATA block 1 and 0 bytes of data (no file I/O). For each WRQ the server should respond with ACK block 0. 
-		Server s = new Server();
-		s.startListening();
+		Server server = new Server();
+		Thread requestListenerThread = new Thread(new RequestListener(server.getReceiveSocket()));
+		requestListenerThread.start();
 		
 		// elegant shutdown
+		server.closeSocket();
 		// finish all file transfers,  but refuse to create new connections with clients
 		
+	}
+
+	private void closeSocket() {
+		receiveSocket.close();
+		System.out.println("Terminating Server");
+	}
+
+	private DatagramSocket getReceiveSocket() {
+		return receiveSocket;
 	}
 }

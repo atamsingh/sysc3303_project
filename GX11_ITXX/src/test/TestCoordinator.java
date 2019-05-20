@@ -6,6 +6,8 @@ public class TestCoordinator {
 		try {
 			TestClient client_tester = new TestClient();
 			client_tester.run();
+
+			TestServer server_tester = new TestServer();
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.out.println("Tests Failed.");
