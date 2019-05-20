@@ -96,7 +96,7 @@ public class Server {
 		// elegant shutdown
 		server.closeSocket();
 		// finish all file transfers,  but refuse to create new connections with clients
-		
+		scanner.close();
 	}
 
 	private void closeSocket() {
