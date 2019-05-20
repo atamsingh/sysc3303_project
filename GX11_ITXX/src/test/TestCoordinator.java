@@ -8,8 +8,13 @@ public class TestCoordinator {
 		try {
 			TestClient client_tester = new TestClient();
 			client_tester.run();
+<<<<<<< HEAD
 			TestCommon common_tester = new TestCommon();
 			common_tester.run();
+=======
+
+			TestServer server_tester = new TestServer();
+>>>>>>> requests
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.out.println("Tests Failed.");
