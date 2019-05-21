@@ -20,12 +20,16 @@ public class ClientConnection implements Runnable {
     private boolean writeRequest = false;
     private boolean readRequest = false;
     OutputStream os;
+    int verbose; 
 
     public ClientConnection(DatagramPacket requestPacket) {
         this.requestPacket = requestPacket;
         blockNumber = 0;
         filename = Commons.extractFilename(requestPacket.getData());
         port = requestPacket.getPort();
+	System.out.println("Enter 1 for verbose mode or 0 for quiet mode!: ");
+	Scanner scanner = new Scanner(System.in);
+	verbose = scanner.nextInt();//verbose mode will print out packet details
 
         try {
             sendReceiveSocket = new DatagramSocket();
@@ -82,7 +86,13 @@ public class ClientConnection implements Runnable {
             try {
                 dataPacket = new DatagramPacket(dataBytes, dataBytes.length, InetAddress.getLocalHost(), port);
                 sendReceiveSocket.send(dataPacket);
-                //TODO print the sent DATA packet
+                //sent DATA packet---print data
+		if(verbose==1) {
+			System.out.println("Client Connection Thread: sending packet");
+		        System.out.println("Packet type: DATA BLOCK");
+			System.out.println("Block number is: "+ dataPacket.getData()[2]+ " "+ dataPacket.getData()[3]);
+			System.out.println("Number of bytes: "+ dataPacket.getLength());
+		}
             } catch (Exception e) {
                 e.printStackTrace();
                 System.out.println("Could not send DATA");
@@ -91,6 +101,13 @@ public class ClientConnection implements Runnable {
             // Wait for ACK packet
             try {
                 sendReceiveSocket.receive(receivePacket);
+		if(verbose==1) {
+			System.out.println("Client Connection Thread: received packet");
+			System.out.println("From host: " + receivePacket.getAddress());
+		        System.out.println("Host port: " + receivePacket.getPort());
+			System.out.println("Packet type: ACK BLOCK");
+			System.out.println("Block number is: "+ receivePacket.getData()[2]+ " "+ receivePacket.getData()[3]);
+		}
             } catch (Exception e) {
                 System.out.println("Could not receive ACK");
             }
@@ -125,7 +142,7 @@ public class ClientConnection implements Runnable {
 		File f = new File(FILEPATH);
 		os = this.openwrite(f);
 		
-		//send ACK data block code should be below
+		//send ACK data block code 
 		byte[] ack = new byte[4];
 		ack[0] = (byte) 0;
 		ack[1] = (byte) 4;
@@ -135,6 +152,11 @@ public class ClientConnection implements Runnable {
 		sendPacket = new DatagramPacket(ack,ack.length,requestPacket.getAddress(),requestPacket.getPort());
 		try {//send ack 
 			sendReceiveSocket.send(sendPacket);
+			if(verbose==1) {
+				System.out.println("Client Connection Thread: sending ACK block);
+		       		System.out.println("Packet type: ACK Block");
+				System.out.println("Block number is: "+ receivePacket.getData()[2]+ " "+ receivePacket.getData()[3]);
+			}
 		}catch(IOException e) {
 			e.printStackTrace();
 			System.exit(1);
@@ -162,24 +184,33 @@ public class ClientConnection implements Runnable {
 				filedata[i-4] = receivePacket.getData()[i];
 				}
 			
-			this.writeByte(filedata, os);
-			//need to close the outputstream somewhere.
-			
-		
-			
+			this.writeByte(filedata, os);		
+			//print details
+			if(verbose==1) {
+				System.out.println("From host: " + receivePacket.getAddress());
+		        	System.out.println("Host port: " + receivePacket.getPort());
+				System.out.println("Packet type: DATA Block");
+				System.out.println("Block number is: "+ receivePacket.getData()[2]+ " "+ receivePacket.getData()[3]);
+				System.out.println("Number of bytes: "+ len);
+			}
 			/**
 			 * code to form ack data block
 			 */
 			ack = new byte[4];
 			ack[0] = (byte) 0;
 			ack[1] = (byte) 4;
-			ack[2] = receivePacket.getData()[0];
-			ack[3] = receivePacket.getData()[1];
+			ack[2] = receivePacket.getData()[2];
+			ack[3] = receivePacket.getData()[3];
 			
 			sendPacket = new DatagramPacket(ack,ack.length,receivePacket.getAddress(),receivePacket.getPort());
 			
 			try {//send ACK block
 				sendReceiveSocket.send(sendPacket);
+				if(verbose==1) {
+					System.out.println("Client Connection Thread: sending ACK block);
+		       			System.out.println("Packet type: ACK Block");
+					System.out.println("Block number is: "+ receivePacket.getData()[2]+ " "+ receivePacket.getData()[3]);
+				}
 			}catch(IOException e) {
 				e.printStackTrace();
 				System.exit(1);
