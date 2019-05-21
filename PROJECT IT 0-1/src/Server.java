@@ -297,6 +297,7 @@ class Client_Write_Thread implements Runnable
 			
 			// receive first block of data
 			try {
+				sendReceiveSocket.setSoTimeout(2000);//time out after 2s if nothing received
 				sendReceiveSocket.receive(receivePacket);
 			}catch(IOException e) {
 				//check out what errors should do
