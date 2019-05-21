@@ -9,6 +9,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.util.Scanner;
 
 public class ClientConnection implements Runnable {
 
@@ -153,9 +154,9 @@ public class ClientConnection implements Runnable {
 		try {//send ack 
 			sendReceiveSocket.send(sendPacket);
 			if(verbose==1) {
-				System.out.println("Client Connection Thread: sending ACK block);
+				System.out.println("Client Connection Thread: sending ACK block");
 		       		System.out.println("Packet type: ACK Block");
-				System.out.println("Block number is: "+ receivePacket.getData()[2]+ " "+ receivePacket.getData()[3]);
+				System.out.println("Block number is: "+ sendPacket.getData()[2]+ " "+ sendPacket.getData()[3]);
 			}
 		}catch(IOException e) {
 			e.printStackTrace();
@@ -207,7 +208,7 @@ public class ClientConnection implements Runnable {
 			try {//send ACK block
 				sendReceiveSocket.send(sendPacket);
 				if(verbose==1) {
-					System.out.println("Client Connection Thread: sending ACK block);
+					System.out.println("Client Connection Thread: sending ACK block");
 		       			System.out.println("Packet type: ACK Block");
 					System.out.println("Block number is: "+ receivePacket.getData()[2]+ " "+ receivePacket.getData()[3]);
 				}
