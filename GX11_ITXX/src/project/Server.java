@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
+import java.util.Scanner;
 
 public class Server {
 		
@@ -78,9 +79,19 @@ public class Server {
 		// get ready to accept 
 		//  supporting multiple concurrent read and write connections with different clients
 		// For each RRQ, the server should respond with DATA block 1 and 0 bytes of data (no file I/O). For each WRQ the server should respond with ACK block 0. 
+		Scanner scanner = new Scanner(System.in);
+		String userInput = "";
 		Server server = new Server();
 		Thread requestListenerThread = new Thread(new RequestListener(server.getReceiveSocket()));
 		requestListenerThread.start();
+		
+		try {
+			while (!userInput.equals("shutdown")) {
+				userInput = scanner.nextLine().toLowerCase();
+			}
+		} catch (Exception e) {
+					
+		}
 		
 		// elegant shutdown
 		server.closeSocket();
