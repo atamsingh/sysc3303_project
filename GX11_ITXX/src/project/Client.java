@@ -10,6 +10,7 @@ public class Client {
 	Commons common = null;
 	ClientInputLoader input_grabber = null;
 	private DatagramSocket sendReceiveSocket;
+	private ErrorSimulator es = new ErrorSimulator("normal");
 	
 	public Client(ClientInputLoader input) {
 		common = new Commons("CLIENT");
@@ -80,7 +81,7 @@ public class Client {
 		byte[] data = this.generatePacket(file_name_to_read, 1);
 		DatagramPacket readRequestPacket = new DatagramPacket(data, data.length, input_grabber.server_address, input_grabber.server_port);
 		this.logVerbose("Sending RRQ packet to server on " + input_grabber.server_address + ":" + input_grabber.server_port + ".");
-		DatagramPacket responseFromServer = common.sendRequestAndWaitOnResponse(this.sendReceiveSocket,readRequestPacket);
+		DatagramPacket responseFromServer = common.sendRequestAndWaitOnResponse(this.sendReceiveSocket,readRequestPacket, this.es);
 		int blocks_received = 1;
 		this.logVerbose("received packet " + blocks_received + "... ");
 		byte[] curr_response = common.filterPackage(responseFromServer);
@@ -88,7 +89,7 @@ public class Client {
 		while(curr_response.length == 512) {
 			byte[] ack_data = common.generateAcknowledgement(blocks_received);
 			DatagramPacket curr_ack = new DatagramPacket(ack_data, ack_data.length, responseFromServer.getAddress(), responseFromServer.getPort());
-			responseFromServer = common.sendRequestAndWaitOnResponse(this.sendReceiveSocket,curr_ack, 1024);
+			responseFromServer = common.sendRequestAndWaitOnResponse(this.sendReceiveSocket,curr_ack, 1024, this.es);
 			blocks_received++;
 			this.logVerbose("received packet " + blocks_received + "... ");
 			curr_response = common.filterPackage(responseFromServer);
@@ -114,8 +115,8 @@ public class Client {
 	private void sendFileToServer(String file_name_to_read, InetAddress address, int port) {
 		this.logVerbose("Reading " + file_name_to_read + " from client disk.");
 		byte[] file_data = this.getFileData(file_name_to_read);
-		int number_of_blocks = (int)Math.ceil(file_data.length / 512);
-		this.logVerbose("blocks " + number_of_blocks + " selected for byte array size of " + file_data.length + " for file to read.");
+		int number_of_blocks = (int) Math.ceil(file_data.length / 512.0) ;
+		this.logVerbose("total block count of " + number_of_blocks + " selected for byte array size of " + file_data.length + " for file to read.");
 		for(int i = 0; i < number_of_blocks; i++) {
 			int start_block_index = i  * 512;
 			int end_block_index = ((i+1) * 512);
@@ -124,9 +125,10 @@ public class Client {
 			byte[] data_to_send = common.generateDataPacket(curr_data, curr_block_number);
 			this.logVerbose("sending block " + curr_block_number + " from byte index " + start_block_index + " to " + end_block_index + ".");
 			DatagramPacket dataPacket = new DatagramPacket(data_to_send, data_to_send.length, address, port);
-			DatagramPacket responseFromServer = common.sendRequestAndWaitOnResponse(this.sendReceiveSocket, dataPacket);
+			DatagramPacket responseFromServer = common.sendRequestAndWaitOnResponse(this.sendReceiveSocket, dataPacket, this.es);
 			if(!common.confirmAcknowledgement(responseFromServer)) {
 				this.logQuiet("Error sending data to server. Confirm that the server is still available and listening.");
+				// TODO error handling -- if error send again
 				break;
 			}
 			this.logVerbose("Successfully received acknowledgement for block " + curr_block_number + ".");
@@ -141,7 +143,7 @@ public class Client {
 		byte[] data = this.generatePacket(file_name_to_write_to, 2);
 		DatagramPacket writeRequestPacket = new DatagramPacket(data, data.length, input_grabber.server_address, input_grabber.server_port);
 		this.logVerbose("Sent request to server for wrq.");
-		DatagramPacket responseFromServer = common.sendRequestAndWaitOnResponse(this.sendReceiveSocket, writeRequestPacket);
+		DatagramPacket responseFromServer = common.sendRequestAndWaitOnResponse(this.sendReceiveSocket, writeRequestPacket, this.es);
 		// confirm it is acknowledged
 		if(common.confirmAcknowledgement(responseFromServer)) {
 			this.logVerbose("Received Acknowledgement from the server. confirming if actually acknowledged.");
@@ -173,16 +175,51 @@ public class Client {
 	
 	public void kickOff() throws IOException {
 		while(input_grabber.notShutDown) {
+			this.logVerbose("asked for client input");
 			input_grabber.askClientInput();
+			this.logVerbose("calling handle request");
 			this.handleRequest();
 		}
 		this.logVerbose("Client asked for shutdown. Made sure all transfers are complete");
 		this.logQuiet("Goodbye!");
 	}
 
-	public void main() throws IOException {
-		ClientInputLoader cig = new ClientInputLoader();
-		Client c = new Client(cig);
-		c.kickOff();
+	public static void main() {
+		try {
+			ClientInputLoader cig;
+			cig = new ClientInputLoader();
+			Client c = new Client(cig);
+			c.kickOff();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
+}
+
+
+class TestServerAndClientLocally {
+    public static void main(final String[] args) {
+
+        Thread serverThread = new Thread() {
+            public void run() {
+                Server.main(args);
+            }
+        };
+
+        Thread clientThread = new Thread() {
+            public void run() {
+                Client.main();
+            }
+        };
+
+        serverThread.start();
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        clientThread.start();
+    }
 }

@@ -1,18 +1,19 @@
 package project;
 
+import java.net.*;
+
 public class ErrorSimulator {
 	
 	Commons common = new Commons("ERROR SIMULATOR");
-	int port_address = 23;
+	String mode;
 	
-	private void startListening() {
-		// listen on port in a threaded way.
-		// on received request kick new thread and handle passing data to server and returning response to server. 
+	public ErrorSimulator(String curr_mode) {
+		mode = curr_mode;
 	}
 	
-	public void main() {
-		// get ready to accept 
-		ErrorSimulator er = new ErrorSimulator();
-		er.startListening();
+	public DatagramPacket vetPackage(DatagramPacket r) {
+		// Error Simulator just returns packet for Iteration 1
+		return r;
 	}
+	
 }

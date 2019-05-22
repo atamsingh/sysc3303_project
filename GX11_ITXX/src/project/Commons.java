@@ -90,19 +90,19 @@ public class Commons {
 		return data;
 	}
 	
-	public DatagramPacket sendRequestAndWaitOnResponse(DatagramSocket socket, DatagramPacket request) {
+	public DatagramPacket sendRequestAndWaitOnResponse(DatagramSocket socket, DatagramPacket request, ErrorSimulator es) {
 		//	Sends the request packet provided to the socket and waits on a response.
 		// this func calls the same func with a different signature. this overwrite provides default 100 buffer size. 
-		return this.sendRequestAndWaitOnResponse(socket, request, 100);
+		return this.sendRequestAndWaitOnResponse(socket, request, 100, es);
 	}
 	
-	public DatagramPacket sendRequestAndWaitOnResponse(DatagramSocket socket, DatagramPacket request, int size) {
+	public DatagramPacket sendRequestAndWaitOnResponse(DatagramSocket socket, DatagramPacket request, int size, ErrorSimulator es) {
 		//	Sends the request packet provided to the socket and waits on a response.
 		try {
 			socket.send(request);
 			DatagramPacket receivePacket = new DatagramPacket(new byte[size], size);
 			socket.receive(receivePacket);
-			return receivePacket;
+			return es.vetPackage(receivePacket);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

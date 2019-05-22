@@ -1,3 +1,5 @@
+package project;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -59,7 +61,6 @@ public class Server {
 		// TODO Auto-generated method stub    
 		Server listener = new Server();
 		listener.listen();
-		
 	}
 	
 }
