@@ -8,6 +8,7 @@ public class TestCoordinator {
 		try {
 			TestClient client_tester = new TestClient();
 			client_tester.run();
+			
 			TestCommon common_tester = new TestCommon();
 			common_tester.run();
 		} catch (Exception e) {

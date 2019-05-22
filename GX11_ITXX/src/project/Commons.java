@@ -158,4 +158,46 @@ public class Commons {
 		
 		return this.concatenateByteArrays(head, data, false);
 	}
+
+	// Extracts string from packets
+	public static String extractString(byte[] receivedMessage, int init) {
+		String extractedString = "";
+
+		for (int i = init; receivedMessage[i] != (byte)0; i++) {
+			extractedString += String.valueOf((char)receivedMessage[i]);
+		}
+
+		return extractedString;
+	}
+
+	// Extracts filename string from packet
+	public static String extractFilename(byte[] receivedMessage) {
+		return extractString(receivedMessage, 2);
+	}
+
+	public static byte[] getNextBlock(byte[] fileBytes, int blockNumber) {
+		byte[] dataPacketBytes = new byte[512];
+		byte[] dataPacketHeaderBytes = new byte[4];
+
+		dataPacketHeaderBytes[0] = 0;
+		dataPacketHeaderBytes[1] = 3;
+		dataPacketHeaderBytes[2] = (byte) (blockNumber >> 8);
+		dataPacketHeaderBytes[3] = (byte) (blockNumber);
+
+		if (fileBytes.length - (blockNumber)*512 == -512) { 
+			return dataPacketHeaderBytes;
+		}
+
+		else if (fileBytes.length - (blockNumber)*512 < 0) {
+			dataPacketBytes = new byte[dataPacketHeaderBytes.length + (fileBytes.length - (blockNumber-1)*512)-2];
+			System.arraycopy(dataPacketHeaderBytes, 0, dataPacketBytes, 0, dataPacketHeaderBytes.length);
+			System.arraycopy(fileBytes, (blockNumber-1)*512, dataPacketBytes, dataPacketHeaderBytes.length, (fileBytes.length - (blockNumber-1)*512)-2);
+		}
+		
+		else {
+			System.arraycopy(fileBytes, (blockNumber-1)*512, dataPacketBytes, dataPacketHeaderBytes.length, 512);
+		}
+		
+		return dataPacketBytes;
+	}
 }
