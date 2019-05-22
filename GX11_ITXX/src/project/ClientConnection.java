@@ -25,15 +25,12 @@ public class ClientConnection implements Runnable {
     OutputStream os;
     int verbose; 
 
-    public ClientConnection(DatagramPacket requestPacket) {
+    public ClientConnection(DatagramPacket requestPacket, int v) {
         this.requestPacket = requestPacket;
         blockNumber = 0;
         filename = Commons.extractFilename(requestPacket.getData());
         port = requestPacket.getPort();
-	System.out.println("Enter 1 for verbose mode or 0 for quiet mode!: ");
-	Scanner scanner = new Scanner(System.in);
-	verbose = scanner.nextInt();//verbose mode will print out packet details
-
+        verbose = v;
         try {
             sendReceiveSocket = new DatagramSocket();
         } catch (SocketException se) {

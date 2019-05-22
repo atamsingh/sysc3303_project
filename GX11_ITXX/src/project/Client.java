@@ -22,7 +22,7 @@ public class Client {
 	}
 	
 	public void logVerbose(String message) {
-		if(this.input_grabber.mode == "verbose") {
+		if(this.input_grabber.mode.contentEquals("verbose")) {
 			common.print(message);
 		}
 	}
@@ -161,10 +161,10 @@ public class Client {
 			this.logVerbose("File requested to be read (locally to write to server/read from server): " + filename_to_read);
 			String filename_to_write_to = input_grabber.write_file_name;
 			this.logVerbose("File requested to write (locally from server/to server): " + filename_to_write_to);
-			if(input_grabber.requestType == "read") {
+			if(input_grabber.requestType.contentEquals("read")) {
 				this.logQuiet("Reading " + filename_to_read + " from server...");
 				this.readRequest(filename_to_read, filename_to_write_to);
-			}else if(input_grabber.requestType == "write") {
+			}else if(input_grabber.requestType.equals("write")) {
 				this.logQuiet("Writing file " + filename_to_read + " to " + filename_to_write_to + " on server...");
 				this.writeRequest(filename_to_read, filename_to_write_to);
 			}
@@ -174,16 +174,15 @@ public class Client {
 	public void kickOff() throws IOException {
 		while(input_grabber.notShutDown) {
 			this.logVerbose("Asking user for input");
-//			input_grabber.askClientInput();
-			this.logVerbose("handling request");
+			input_grabber.askClientInput();
+			this.logQuiet("handling request");
 			this.handleRequest();
-			System.exit(1);
 		}
 		this.logVerbose("Client asked for shutdown. Made sure all transfers are complete");
 		this.logQuiet("Goodbye!");
 	}
 
-	public static void main() {
+	public static void main(String[] args) {
 		try {
 			ClientInputLoader cig;
 			cig = new ClientInputLoader();
@@ -194,32 +193,3 @@ public class Client {
 		}
 	}
 }
-
-
-class TestServerAndClientLocally {
-    public static void main(final String[] args) {
-
-         Thread serverThread = new Thread() {
-            public void run() {
-                Server.main(args);
-            }
-        };
-
-         Thread clientThread = new Thread() {
-            public void run() {
-                Client.main();
-            }
-        };
-
-         serverThread.start();
-
-         try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-         clientThread.start();
-    }
-}
-  

@@ -18,7 +18,6 @@ public class ClientInputLoader {
 	InetAddress server_address = null;
 	int server_port = 69;
 	boolean write_to_file = true;
-	int run_count = 0;
 	//first run
 	private boolean firstItteration = true;
 	
@@ -26,11 +25,20 @@ public class ClientInputLoader {
 		server_address = InetAddress.getByName("");  // server address
 	}
 	
+	public void printall() {
+		System.out.println("mode: " + mode);
+		System.out.println("notShutDown: " + notShutDown);
+		System.out.println("requestType: " + requestType);
+		System.out.println("read_file_name: " + read_file_name);
+		System.out.println("write_file_name: " + write_file_name);
+		System.out.println("server_port: " + server_port);
+		System.out.println("write_to_file: " + write_to_file);
+		System.out.println("firstItteration: " + firstItteration);
+	}
+	
 	public void askClientInput() throws UnknownHostException {
-		// ask questions and update the class variables;
-		
-		if(firstItteration)
-		{
+
+		if(firstItteration) {
 			System.out.println("Welcome to use the SYSC 3303's team 11's project");
 			System.out.println("Project iteration : 1");
 			notShutDown = true;
@@ -52,21 +60,14 @@ public class ClientInputLoader {
 				read_file_name = client_file_path + "/" + client_file_subname;
 				write_file_name = server_file_path + "/" + server_file_subname;
 			}
-			run_count++;
 			firstItteration = false;
-			scanner.close();
 		} else {
-			if(run_count == 1) {
-				scanner.close();
-				return;
-			}
 			System.out.print("Do you want to continue using this client (Y/N):");
 			if(!ask_continue())
 			{
 				scanner.close();
 				notShutDown = false;
 			} else {
-				run_count++;
 				System.out.print("Do you want to change the server address " + server_address.toString() + " (Y/N):");
 				if(ask_continue())
 				{this.ask_server_address();}
@@ -119,8 +120,14 @@ public class ClientInputLoader {
 	//asking the server address
 	private void ask_server_address() throws UnknownHostException
 	{
-		System.out.print("Please type in the server address :");
-		server_address = InetAddress.getByName(scanner.nextLine());
+		System.out.print("Please type in the server address  or local for localhost:");
+		String input = scanner.nextLine();
+		if(input.equals("local")) {
+			server_address= InetAddress.getLocalHost();
+		}else {
+			server_address = InetAddress.getByName(input);
+		}
+		
 	}
 	
 	//ask for the port

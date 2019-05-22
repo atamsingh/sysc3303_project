@@ -1,9 +1,9 @@
 package project;
 
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
+import java.util.Scanner;
 
 public class Server {
 		
@@ -23,34 +23,35 @@ public class Server {
 		}
 		
 	}
-	
-	/**
-	 * receives datagram packet and creates client connection thread to deal with transfer of information
-	 */
-	public void listen() {
-		while(true) {
-			byte[] data = new byte[100];
-			receivePacket = new DatagramPacket(data, data.length);
-			System.out.println("Server: Waiting for message...");
-			
-			//receive packet
-			try {
-				receiveSocket.receive(receivePacket);
-			} catch (IOException e) {
-				e.printStackTrace();
-				System.exit(1);
-			}
-			
-			//packet received --create client connection thread--
-			System.out.println("Server: Packet received, creating client connection thread");
-			Thread clientConnectionThread = new Thread(new ClientConnection(receivePacket));
-			clientConnectionThread.start();
-		}		
+
+	private void closeSocket() {
+		receiveSocket.close();
+		System.out.println("Server terminating.");
 	}
 
 	public static void main(String[] args) {
-		// TODO Auto-generated method stub 
+		Scanner scanner = new Scanner(System.in);
+		System.out.println("[SERVER]Enter 1 for verbose mode or 0 for quiet mode!: ");
+		int verbose = scanner.nextInt();//verbose mode will print out packet details
+		
+		String userInput = "";
 		Server server = new Server();
-		server.listen();
+		Thread requestListenerThread = new Thread(new RequestListener(server.getReceiveSocket(), verbose));
+		requestListenerThread.start();
+
+		try {
+			while (!userInput.equals("shutdown")) {
+				userInput = scanner.nextLine().toLowerCase();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		server.closeSocket();
+		scanner.close();
+	}
+
+	private DatagramSocket getReceiveSocket() {
+		return receiveSocket;
 	}
 }
