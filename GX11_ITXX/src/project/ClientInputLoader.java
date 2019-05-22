@@ -6,18 +6,19 @@ import java.util.Scanner;
 
 public class ClientInputLoader {
 	private Scanner scanner = new Scanner(System.in);
-	boolean notShutDown = false;
+	boolean notShutDown = true;
 	String requestType = "read"; // or write
 	private String server_file_path = "/Users/atamjeetsingh/Desktop";
 	private String client_file_path = "/Users/atamjeetsingh/Desktop";
 	private String server_file_subname = "testing.txt";
-	private String client_file_subname = "testing.txt";
-	String read_file_name = client_file_path + "/" + client_file_subname; // ask not for full path instead for directory to work in + file to read
+	private String client_file_subname = "testing_copy.txt";
+	String read_file_name = client_file_path + "/" + server_file_subname; // ask not for full path instead for directory to work in + file to read
 	String write_file_name = client_file_path + "/" + client_file_subname; // similar to above. make sure this string add concatenated when captured
 	String mode = "verbose"; // or can be quiet
 	InetAddress server_address = null;
 	int server_port = 69;
 	boolean write_to_file = true;
+	int run_count = 0;
 	//first run
 	private boolean firstItteration = true;
 	
@@ -51,66 +52,68 @@ public class ClientInputLoader {
 				read_file_name = client_file_path + "/" + client_file_subname;
 				write_file_name = server_file_path + "/" + server_file_subname;
 			}
+			run_count++;
 			firstItteration = false;
-			return;
-		}
-		else
-		{
+			scanner.close();
+		} else {
+			if(run_count == 1) {
+				scanner.close();
+				return;
+			}
 			System.out.print("Do you want to continue using this client (Y/N):");
 			if(!ask_continue())
 			{
 				scanner.close();
 				notShutDown = false;
-				return;
+			} else {
+				run_count++;
+				System.out.print("Do you want to change the server address " + server_address.toString() + " (Y/N):");
+				if(ask_continue())
+				{this.ask_server_address();}
+			
+				System.out.print("Do you want to change the port number " + server_port + " (Y/N):");
+				if(ask_continue())
+				{this.ask_port();}
+				
+				System.out.print("Do you want to change the mode " + mode + " (Y/N):");
+				if(ask_continue())
+				{this.ask_mode();}
+				
+				System.out.print("Do you want to change the request type " + requestType + " (Y/N):");
+				if(ask_continue())
+				{this.ask_requestType();}
+				
+				System.out.print("Do you want to change the file path on server " + server_file_path + " (Y/N):");
+				if(ask_continue())
+				{this.ask_server_filepath();}
+				
+				System.out.print("Do you want to change the file name on server " + server_file_subname + " (Y/N):");
+				if(ask_continue())
+				{this.ask_server_filename();}
+				
+				System.out.print("Do you want to change the file path on client " + client_file_path + " (Y/N):");
+				if(ask_continue())
+				{this.ask_client_filepath();}
+				
+				System.out.print("Do you want to change the file name on client " + client_file_subname + " (Y/N):");
+				if(ask_continue())
+				{this.ask_client_filename();}
+				
+				if(requestType.equals("read"))
+				{
+					read_file_name = server_file_path + "/" + server_file_subname;
+					write_file_name = client_file_path + "/" + client_file_subname;
+				}
+				else
+				{
+					read_file_name = client_file_path + "/" + client_file_subname;
+					write_file_name = server_file_path + "/" + server_file_subname;
+				}
+				
+				scanner.close();
 			}
-			
-			System.out.print("Do you want to change the server address " + server_address.toString() + " (Y/N):");
-			if(ask_continue())
-			{this.ask_server_address();}
-			
-			System.out.print("Do you want to change the port number " + server_port + " (Y/N):");
-			if(ask_continue())
-			{this.ask_port();}
-			
-			System.out.print("Do you want to change the mode " + mode + " (Y/N):");
-			if(ask_continue())
-			{this.ask_mode();}
-			
-			System.out.print("Do you want to change the request type " + requestType + " (Y/N):");
-			if(ask_continue())
-			{this.ask_requestType();}
-			
-			System.out.print("Do you want to change the file path on server " + server_file_path + " (Y/N):");
-			if(ask_continue())
-			{this.ask_server_filepath();}
-			
-			System.out.print("Do you want to change the file name on server " + server_file_subname + " (Y/N):");
-			if(ask_continue())
-			{this.ask_server_filename();}
-			
-			System.out.print("Do you want to change the file path on client " + client_file_path + " (Y/N):");
-			if(ask_continue())
-			{this.ask_client_filepath();}
-			
-			System.out.print("Do you want to change the file name on client " + client_file_subname + " (Y/N):");
-			if(ask_continue())
-			{this.ask_client_filename();}
-			
-			if(requestType.equals("read"))
-			{
-				read_file_name = server_file_path + "/" + server_file_subname;
-				write_file_name = client_file_path + "/" + client_file_subname;
-			}
-			else
-			{
-				read_file_name = client_file_path + "/" + client_file_subname;
-				write_file_name = server_file_path + "/" + server_file_subname;
-			}
-			
-			scanner.close();
-			return;
 		}
-		
+		return;
 	}
 	
 	//asking the server address

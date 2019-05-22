@@ -80,12 +80,12 @@ public class Client {
 		byte[] data = this.generatePacket(file_name_to_read, 1);
 		DatagramPacket readRequestPacket = new DatagramPacket(data, data.length, input_grabber.server_address, input_grabber.server_port);
 		this.logVerbose("Sending RRQ packet to server on " + input_grabber.server_address + ":" + input_grabber.server_port + ".");
-		DatagramPacket responseFromServer = common.sendRequestAndWaitOnResponse(this.sendReceiveSocket,readRequestPacket);
+		DatagramPacket responseFromServer = common.sendRequestAndWaitOnResponse(this.sendReceiveSocket,readRequestPacket, 516);
 		int blocks_received = 1;
 		this.logVerbose("received packet " + blocks_received + "... ");
 		byte[] curr_response = common.filterPackage(responseFromServer);
 		byte[] all_data = curr_response;
-		while(curr_response.length == 512) {
+		while(curr_response.length >= 512) {
 			byte[] ack_data = common.generateAcknowledgement(blocks_received);
 			DatagramPacket curr_ack = new DatagramPacket(ack_data, ack_data.length, responseFromServer.getAddress(), responseFromServer.getPort());
 			responseFromServer = common.sendRequestAndWaitOnResponse(this.sendReceiveSocket,curr_ack, 1024);
@@ -114,7 +114,7 @@ public class Client {
 	private void sendFileToServer(String file_name_to_read, InetAddress address, int port) {
 		this.logVerbose("Reading " + file_name_to_read + " from client disk.");
 		byte[] file_data = this.getFileData(file_name_to_read);
-		int number_of_blocks = (int)Math.ceil(file_data.length / 512);
+		int number_of_blocks = (int)Math.ceil(file_data.length / 512.0);
 		this.logVerbose("blocks " + number_of_blocks + " selected for byte array size of " + file_data.length + " for file to read.");
 		for(int i = 0; i < number_of_blocks; i++) {
 			int start_block_index = i  * 512;
@@ -173,16 +173,53 @@ public class Client {
 	
 	public void kickOff() throws IOException {
 		while(input_grabber.notShutDown) {
-			input_grabber.askClientInput();
+			this.logVerbose("Asking user for input");
+//			input_grabber.askClientInput();
+			this.logVerbose("handling request");
 			this.handleRequest();
+			System.exit(1);
 		}
 		this.logVerbose("Client asked for shutdown. Made sure all transfers are complete");
 		this.logQuiet("Goodbye!");
 	}
 
-	public static void main(String[] args) throws IOException {
-		ClientInputLoader cig = new ClientInputLoader();
-		Client c = new Client(cig);
-		c.kickOff();
+	public static void main() {
+		try {
+			ClientInputLoader cig;
+			cig = new ClientInputLoader();
+			Client c = new Client(cig);
+			c.kickOff();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 }
+
+
+class TestServerAndClientLocally {
+    public static void main(final String[] args) {
+
+         Thread serverThread = new Thread() {
+            public void run() {
+                Server.main(args);
+            }
+        };
+
+         Thread clientThread = new Thread() {
+            public void run() {
+                Client.main();
+            }
+        };
+
+         serverThread.start();
+
+         try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+         clientThread.start();
+    }
+}
+  
