@@ -180,7 +180,7 @@ public class Client {
 		this.logQuiet("Goodbye!");
 	}
 
-	public void main() throws IOException {
+	public static void main(String[] args) throws IOException {
 		ClientInputLoader cig = new ClientInputLoader();
 		Client c = new Client(cig);
 		c.kickOff();
