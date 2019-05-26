@@ -15,4 +15,18 @@ public class ErrorSimulator {
 		ErrorSimulator er = new ErrorSimulator();
 		er.startListening();
 	}
+
+	Public void delayPacket(){
+
+	}
+
+	public void duplicatePacket(){
+
+	}
+
+
+	public void losePacket(){
+		
+	}
+
 }
