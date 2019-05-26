@@ -198,4 +198,20 @@ public class Commons {
 
 		return dataPacketBytes;
 	}
+
+	public static int getBlockNumber(DatagramPacket packet) {
+		if (packet == null)
+			return -1;
+		else
+			return extractTwoBytes(packet.getData(), 2);
+	}
+
+	public static int extractTwoBytes(byte [] receivedMessage, int startPosition) {
+		int code = 0;
+
+		code += receivedMessage[0 + startPosition] * 16;
+		code += receivedMessage[1 + startPosition];
+
+		return code;
+	}
 }

@@ -9,6 +9,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Scanner;
@@ -30,7 +31,8 @@ public class ClientConnection implements Runnable {
         blockNumber = 0;
         filename = Commons.extractFilename(requestPacket.getData());
         port = requestPacket.getPort();
-        verbose = v;
+		verbose = v;
+		
         try {
             sendReceiveSocket = new DatagramSocket();
         } catch (SocketException se) {
@@ -87,7 +89,7 @@ public class ClientConnection implements Runnable {
                 //sent DATA packet---print data
 				if(verbose==1) {
 					System.out.println("Client Connection Thread: sending packet");
-				        System.out.println("Packet type: DATA BLOCK");
+				    System.out.println("Packet type: DATA BLOCK");
 					System.out.println("Block number is: "+ dataPacket.getData()[2]+ " "+ dataPacket.getData()[3]);
 					System.out.println("Number of bytes: "+ dataPacket.getLength());
 				}
@@ -98,21 +100,28 @@ public class ClientConnection implements Runnable {
 
             // Wait for ACK packet
             try {
-                sendReceiveSocket.receive(receivePacket);
-				if(verbose==1) {
-					System.out.println("Client Connection Thread: received packet");
-					System.out.println("From host: " + receivePacket.getAddress());
-				        System.out.println("Host port: " + receivePacket.getPort());
-					System.out.println("Packet type: ACK BLOCK");
-					System.out.println("Block number is: "+ receivePacket.getData()[2]+ " "+ receivePacket.getData()[3]);
-				}
-            } catch (Exception e) {
+				do {
+					sendReceiveSocket.receive(receivePacket);
+					if(verbose==1) {
+						System.out.println("Client Connection Thread: received packet");
+						System.out.println("From host: " + receivePacket.getAddress());
+						System.out.println("Host port: " + receivePacket.getPort());
+						System.out.println("Packet type: ACK BLOCK");
+						System.out.println("Block number is: "+ receivePacket.getData()[2]+ " "+ receivePacket.getData()[3]);
+					}
+
+					if (Commons.getBlockNumber(receivePacket) != blockNumber)
+						System.out.println("Discarded duplicate ACK packet");
+				} while (Commons.getBlockNumber(receivePacket) != blockNumber);
+			} catch (SocketTimeoutException e) {
+				blockNumber--;
+				System.out.println("Timed out, rolling back");
+			} catch (Exception e) {
                 System.out.println("Could not receive ACK");
             }
 
-            if (dataBytes.length < 512) {
+            if (dataBytes.length < 516)
                 connection = false;
-            }
         }
     }
 
