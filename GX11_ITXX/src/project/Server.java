@@ -1,46 +1,57 @@
 package project;
-//NNAmdi Okwechime
+
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.SocketException;
+import java.util.Scanner;
 
 public class Server {
-	
-	Commons common = new Commons("SERVER");
-	int port_address =  69;
-	
-	private void handleReadRequest() {
-
-	}
-	
-	private void handleWriteRequest() {
-
-	}
-	
-	private void handleRequest() {
-		// if read
-		this.handleReadRequest();
-		// else if write
-		this.handleWriteRequest();
-		// else
-		// handle error
-	}
-	
-	public void startListening() {
-		// listen to the port needed for requests 
-		// create threads to handle these req. received
-		// One thread will wait on port 69 for UDP datagrams (that should contain RRQ or WRQ packets)
-		// create another thread (call it the client connection thread), and pass it the TFTP packet to deal with
-		this.handleRequest(); // send data along
-		// go back to waiting on port 69 for another request. 
-	}
-
-	public void main() {
-		// get ready to accept 
-		//  supporting multiple concurrent read and write connections with different clients
-		// For each RRQ, the server should respond with DATA block 1 and 0 bytes of data (no file I/O). For each WRQ the server should respond with ACK block 0. 
-		Server s = new Server();
-		s.startListening();
 		
-		// elegant shutdown
-		// finish all file transfers,  but refuse to create new connections with clients
+	DatagramSocket receiveSocket;
+	DatagramPacket receivePacket;
+	
+	/**
+	 * Constructor for the server listener class
+	 * Initializes socket on port 69
+	 */
+	public Server() {
+		try {
+			receiveSocket = new DatagramSocket(69);
+		} catch (SocketException se) {
+			se.printStackTrace();
+			System.exit(1);
+		}
 		
+	}
+
+	private void closeSocket() {
+		receiveSocket.close();
+		System.out.println("Server terminating.");
+	}
+
+	public static void main(String[] args) {
+		Scanner scanner = new Scanner(System.in);
+		System.out.println("[SERVER]Enter 1 for verbose mode or 0 for quiet mode!: ");
+		int verbose = scanner.nextInt();//verbose mode will print out packet details
+		
+		String userInput = "";
+		Server server = new Server();
+		Thread requestListenerThread = new Thread(new RequestListener(server.getReceiveSocket(), verbose));
+		requestListenerThread.start();
+
+		try {
+			while (!userInput.equals("shutdown")) {
+				userInput = scanner.nextLine().toLowerCase();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		server.closeSocket();
+		scanner.close();
+	}
+
+	private DatagramSocket getReceiveSocket() {
+		return receiveSocket;
 	}
 }
