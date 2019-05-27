@@ -174,8 +174,9 @@ public class ClientConnection implements Runnable {
 			
 			// receive first block of data
 			try {
+				sendReceiveSocket.setSoTimeout(1000);//set timeout to 1 second
 				sendReceiveSocket.receive(receivePacket);
-			}catch(IOException e) {
+			}catch(SocketTimeoutException e) {
 				//check out what errors should do
 				e.printStackTrace();
 				System.exit(1);
