@@ -4,8 +4,9 @@ public class ErrorSimulator implements Runnable {
 	
 	Commons common = new Commons("ERROR SIMULATOR");
 	int port_address = 23;
-	
+
 	private void startListening() {
+
 		// listen on port in a threaded way.
 		// on received request kick new thread and handle passing data to server and returning response to server. 
 	}
@@ -14,7 +15,10 @@ public class ErrorSimulator implements Runnable {
 		// get ready to accept 
 		ErrorSimulator er = new ErrorSimulator();
 		er.startListening();
+		Thread t1 = new Thread ( new ErrorSimulator);
+		t1.start();
 	}
+
 	
 	Public void delayPacket(){
 		// first thread handles next packet
