@@ -1,6 +1,6 @@
 package project;
 
-public class ErrorSimulator {
+public class ErrorSimulator implements Runnable {
 	
 	Commons common = new Commons("ERROR SIMULATOR");
 	int port_address = 23;
@@ -15,8 +15,11 @@ public class ErrorSimulator {
 		ErrorSimulator er = new ErrorSimulator();
 		er.startListening();
 	}
-
+	
 	Public void delayPacket(){
+		// first thread handles next packet
+		//second thread handles delayedpacket
+
 
 	}
 
@@ -26,7 +29,9 @@ public class ErrorSimulator {
 
 
 	public void losePacket(){
-		
+		//first thread handles next packet after selected packet is lost
+		//second packet handles lost packet
+
 	}
 
 }
