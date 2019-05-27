@@ -15,7 +15,7 @@ import java.nio.file.Paths;
 import java.util.Scanner;
 
 public class ClientConnection implements Runnable {
-
+//cct
     DatagramPacket requestPacket;
     DatagramSocket sendReceiveSocket;
     int blockNumber;
