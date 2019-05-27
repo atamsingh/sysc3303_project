@@ -15,7 +15,7 @@ public class ErrorSimulator implements Runnable {
 		// get ready to accept 
 		ErrorSimulator er = new ErrorSimulator();
 		er.startListening();
-		Thread t1 = new Thread ( new ErrorSimulator);
+		Thread t1 = new Thread ( new ErrorSimulator());
 		t1.start();
 	}
 
