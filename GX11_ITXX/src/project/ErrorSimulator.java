@@ -13,6 +13,7 @@ public class ErrorSimulator implements Runnable {
 	}
 	//socket recivie packet
 	//socket get packet
+	//pass in packet using vet_package
 
 	//delay by 1000ms 
 	public void main() {
@@ -22,8 +23,12 @@ public class ErrorSimulator implements Runnable {
 		//create new thread
 		Thread t1 = new Thread ( new ErrorSimulator());
 		t1.start();
-		Thread t2 = new THread (new ErrorSimulator());
+		Thread t2 = new Thread ( new ErrorSimulator());
 		t2.start();
+
+
+	
+		
 
 		}
 
