@@ -6,6 +6,7 @@ public class ErrorSimulator implements Runnable {
 	int port_address = 23;
 	long delayvalue;
 
+
 	private void startListening() {
 
 		// listen on port in a threaded way.
@@ -20,7 +21,7 @@ public class ErrorSimulator implements Runnable {
 		// get ready to accept 
 		ErrorSimulator er = new ErrorSimulator();
 		er.startListening();
-		//create new thread
+		//create new threads for multiple packets
 		Thread t1 = new Thread ( new ErrorSimulator());
 		t1.start();
 		Thread t2 = new Thread ( new ErrorSimulator());
@@ -32,11 +33,20 @@ public class ErrorSimulator implements Runnable {
 
 		}
 
+	public void Connect(){
+		try{
+
+		}
+		catch{
+
+		}
+	}
+
 	//Delay 
 	Public void delayPacket(long delay){
 		// first thread handles next packet
 		//second thread handles delayedpacket
-		t1.sleep(100);
+		t1.sleep(100);// adds a delay of 100 microseconds 
 
 
 
