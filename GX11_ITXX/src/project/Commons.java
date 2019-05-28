@@ -109,6 +109,22 @@ public class Commons {
 		return null;
 	}
 	
+	public DatagramPacket receiveRequest(DatagramSocket socket) {
+		return receiveRequest(socket, 100);
+	}
+	
+	public DatagramPacket receiveRequest(DatagramSocket socket, int size) {
+		// Sends the request packet provided to the socket and DOES NOT wait on a response.
+		try {
+			DatagramPacket receivePacket = new DatagramPacket(new byte[size], size);
+			socket.receive(receivePacket);
+			return receivePacket;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
 	public boolean sendRequest(DatagramSocket socket, DatagramPacket request) {
 		//	Sends the request packet provided to the socket and DOES NOT wait on a response.
 		try {
@@ -132,10 +148,11 @@ public class Commons {
 		return ack;
 	}
 	
-	public boolean confirmAcknowledgement(DatagramPacket r) {
-		// Confirms is the TFTP Acknowledgement received is correct.
-		// assuming no errors for iteration 1
-		return true;
+	public boolean confirmAcknowledgement(DatagramPacket r, int block_num) {
+		if (r == null)
+			return false;
+		else
+			return extractTwoBytes(r.getData(), 2) == block_num;
 	}
 	
 	private byte[] blockNumToTwoBytes(int block_number) {
