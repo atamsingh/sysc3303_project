@@ -15,7 +15,7 @@ import java.nio.file.Paths;
 import java.util.Scanner;
 
 public class ClientConnection implements Runnable {
-//cct
+
     DatagramPacket requestPacket;
     DatagramSocket sendReceiveSocket;
     int blockNumber;
@@ -213,7 +213,7 @@ public class ClientConnection implements Runnable {
 					//print details
 					if(verbose==1) {
 						System.out.println("From host: " + receivePacket.getAddress());
-				        	System.out.println("Host port: " + receivePacket.getPort());
+				        System.out.println("Host port: " + receivePacket.getPort());
 						System.out.println("Packet type: DATA Block");
 						System.out.println("Block number is: "+ receivePacket.getData()[2]+ " "+ receivePacket.getData()[3]);
 						System.out.println("Number of bytes: "+ len);
