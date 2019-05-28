@@ -4,9 +4,9 @@ import java.net.*;
 import java.util.Scanner;
 
 public class ErrorSimulator {
-	DatagramPacket sendPacket, receivePacket,sendbackPacket;
+	DatagramPacket sendPacket, receivePacket,sendbackPacket, dupPacket;
 	DatagramSocket sendReceiveSocket, receiveSocket;
-	int verbose;
+	int verbose,errorblock,timeout;//error block is the block number to sim error on
 	boolean delay, dup, lose; 
 	
 	public ErrorSimulator(int verbose,int error) {
@@ -25,8 +25,19 @@ public class ErrorSimulator {
 			delay = false; dup = false; lose = true;
 		}else if(error == 2) {
 			delay = true; dup = false; lose = false;
+			System.out.println("[ERROR SIM]Enter the amount of time in seconds to delay for");
+			Scanner scanner = new Scanner(System.in);
+			 timeout = scanner.nextInt();
+			 timeout = timeout*1000;//change to milliseconds
+			scanner.close();
 		}else if(error == 3) {
 			delay = false; dup = true; lose = false;
+		}
+		if(error!=0) {
+			System.out.println("[ERROR SIM]Enter the block number you want the error to occur on");
+			Scanner scanner = new Scanner(System.in);
+			 errorblock = scanner.nextInt();
+			scanner.close();
 		}
 	}
 	
@@ -60,33 +71,64 @@ public class ErrorSimulator {
 		        }				
 				System.out.println("Number of bytes: "+ sendbackPacket.getLength());
 			}
-			
 			try {//create packet to send to server
-				if(receivePacket == null) {//client connection thread not yet created
-					sendPacket = new DatagramPacket(data,sendbackPacket.getLength(),InetAddress.getLocalHost(),69);
-				}else {
-					//get the port of the client connection thread
-					sendPacket = new DatagramPacket(data,sendbackPacket.getLength(),InetAddress.getLocalHost(),receivePacket.getPort());
+			if(receivePacket == null) {//client connection thread not yet created
+				sendPacket = new DatagramPacket(data,sendbackPacket.getLength(),InetAddress.getLocalHost(),69);
+			}else {
+				//get the port of the client connection thread. Now transmitting data
+				sendPacket = new DatagramPacket(data,sendbackPacket.getLength(),InetAddress.getLocalHost(),receivePacket.getPort());
+			}					
+			}catch(IOException e) {
+				e.printStackTrace();
+				System.exit(1);
+			}
+			if(lose) {
+				if(Commons.getBlockNumber(sendPacket)!=errorblock) {
+					//not errorblock so send as usual
+					try {//send packet to server
+						System.out.println("Error Simulator: packet formed");
+						sendReceiveSocket.send(sendPacket);
+						System.out.println("Error Simulator: packet sent");
+					}catch(IOException e) {
+						e.printStackTrace();
+						System.exit(1);
+					}
 				}
+				System.out.println("Error simulator: Losing packet");
+			}else {
+				try {//send packet to server
+					System.out.println("Error Simulator: packet formed");
+					if(delay && Commons.getBlockNumber(sendPacket)==errorblock) {//if delay is true then make error sim sleep before sending
+						try {
+							System.out.println("Error simulator: delaying packet");
+							Thread.sleep(timeout);
+						}catch(InterruptedException t) {
+							t.printStackTrace();
+							System.exit(1);
+						}						
+					}
+					if(dup && sendPacket.getData()[1] == (byte)3 && Commons.getBlockNumber(dupPacket)==errorblock) {
+						sendReceiveSocket.send(dupPacket);
+						dup = false; //turn of dup to avoid getting stuck here
+					}else {
+						sendReceiveSocket.send(sendPacket);
+						dupPacket = sendPacket;
+					}
+					System.out.println("Error Simulator: packet sent");
+				}catch(IOException e) {
+					e.printStackTrace();
+					System.exit(1);
+				}
+			}
 				
-			}catch(IOException e) {
-				e.printStackTrace();
-				System.exit(1);
-			}
+				
 			
-			try {//send packet to server
-				System.out.println("Error Simulator: packet formed");
-				sendReceiveSocket.send(sendPacket);
-				System.out.println("Error Simulator: packet sent");
-			}catch(IOException e) {
-				e.printStackTrace();
-				System.exit(1);
-			}
+			
 			
 			
 			////RECEIVE PACKET FROM SERVER//////////////////////////////////////////////////////////////////////////////////////////////////////
 			System.out.println("Error Simulator: Waiting for Packet...\n");
-			byte[]msg = new byte [100];
+			byte[]msg = new byte [516];
 			receivePacket = new DatagramPacket(msg,msg.length);
 			try {//receive packet from server
 				sendReceiveSocket.receive(receivePacket);
@@ -120,15 +162,47 @@ public class ErrorSimulator {
 				e.printStackTrace();
 				System.exit(1);
 			}
-			try {//send packet back to client
-				//////print information before sending
-				System.out.println("Error Simulator: packet formed");
-				sendReceiveSocket.send(sendPacket);
-				System.out.println("Error Simulator: packet sent");
-			}catch(IOException e) {
-				e.printStackTrace();
-				System.exit(1);
+			if(lose) {
+				if(Commons.getBlockNumber(receivePacket)!=errorblock) {
+					//not errorblock then send as usual
+					try {//send packet back to client
+						//////print information before sending
+						System.out.println("Error Simulator: packet formed");
+						sendReceiveSocket.send(sendPacket);
+						System.out.println("Error Simulator: packet sent");
+					}catch(IOException e) {
+						e.printStackTrace();
+						System.exit(1);
+					}
+				}				
+			}else {
+				try {//send packet back to client
+					//////print information before sending
+					System.out.println("Error Simulator: packet formed");
+					if(delay && Commons.getBlockNumber(sendPacket)==errorblock) {//if delay is true then make error sim sleep before sending
+						try {
+							System.out.println("Error simulator: delaying packet");
+							Thread.sleep(timeout);
+						}catch(InterruptedException t) {
+							t.printStackTrace();
+							System.exit(1);
+						}						
+					}
+					if(dup && sendPacket.getData()[1] == (byte)3 && Commons.getBlockNumber(dupPacket)==errorblock) {
+						//if its a data block and dup is true 
+						sendReceiveSocket.send(dupPacket);
+						dup = false; //turn of dup to avoid getting stuck here
+					}else {
+						sendReceiveSocket.send(sendPacket);
+						dupPacket = sendPacket;
+					}
+					System.out.println("Error Simulator: packet sent");
+				}catch(IOException e) {
+					e.printStackTrace();
+					System.exit(1);
+				}
 			}
+			
 			
 
 		}
