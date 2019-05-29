@@ -155,8 +155,15 @@ public class ClientConnection implements Runnable {
 		ack[2] = (byte) 0;
 		ack[3] = (byte) 0;
 		
-		sendPacket = new DatagramPacket(ack,ack.length,requestPacket.getAddress(),requestPacket.getPort());
+		sendPacket = new DatagramPacket(ack,ack.length,requestPacket.getAddress(),23);
 		try {//send ack 
+			System.out.println(sendPacket.getPort());
+			try {
+				Thread.sleep(2000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			sendReceiveSocket.send(sendPacket);
 			if(verbose==1) {
 				System.out.println("Client Connection Thread: sending ACK block");
@@ -219,7 +226,7 @@ public class ClientConnection implements Runnable {
 			ack[2] = receivePacket.getData()[2];
 			ack[3] = receivePacket.getData()[3];
 			
-			sendPacket = new DatagramPacket(ack,ack.length,receivePacket.getAddress(),receivePacket.getPort());
+			sendPacket = new DatagramPacket(ack,ack.length,receivePacket.getAddress(),23);
 			
 			try {//send ACK block
 				sendReceiveSocket.send(sendPacket);
