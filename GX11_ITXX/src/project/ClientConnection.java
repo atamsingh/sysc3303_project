@@ -76,9 +76,6 @@ public class ClientConnection implements Runnable {
 
             // Get next DATA packet
             try {
-//            	Commons c = new Commons("Client Connection");
-//            	c.print(fileBytes, "file");
-//            	System.out.println(blockNumber);
                 dataBytes = Commons.getNextBlock(fileBytes, blockNumber);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -173,76 +170,69 @@ public class ClientConnection implements Runnable {
         
         while (connection) {
 			receivePacket = new DatagramPacket(data,data.length);
-			try {
+			/*try {
 				sendReceiveSocket.setSoTimeout(1000);
 			} catch (SocketException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
-			}
+			}*/
 			// receive first block of data
 			try {
-				//set timeout to 1 second
+				//wait till a packet is received
 				sendReceiveSocket.receive(receivePacket);
 			}catch(IOException e) {
-				System.out.println("SOCKET TIMEOUT RESENDING ACK");
-				try {//resend ACK block
-					sendReceiveSocket.send(sendPacket);
-				} catch (IOException er) {
-					// TODO Auto-generated catch block
-					er.printStackTrace();
+				e.printStackTrace();
+			}
+			
+			System.out.println("Server: Packet received!");
+			if(previousBlock[0] != receivePacket.getData()[2] && previousBlock[1] != receivePacket.getData()[3]) {
+				//if here, then previous data block is different from current data block. NO DUPLICATE CASE. 
+				/**
+				 * Code to extract and write data to file.
+				 */
+				len = receivePacket.getLength();
+				byte[] filedata = new byte[len-4];//first 4 bytes in receivePacket are not data
+				for(int i=4;i<len;i++) {
+					filedata[i-4] = receivePacket.getData()[i];
+					}
+				
+				this.writeByte(filedata, os);		
+				////////get the block number..///////
+				previousBlock[0] = receivePacket.getData()[2];
+				previousBlock[1] = receivePacket.getData()[3]; 					
+				//print details
+				if(verbose==1) {
+					System.out.println("From host: " + receivePacket.getAddress());
+			        System.out.println("Host port: " + receivePacket.getPort());
+					System.out.println("Packet type: DATA Block");
+					System.out.println("Block number is: "+ receivePacket.getData()[2]+ " "+ receivePacket.getData()[3]);
+					System.out.println("Number of bytes: "+ len);
 				}
 			}
 			
-			if(receivePacket.getAddress()!=null) {//if a packet was not received return to waiting on receive 
-				System.out.println("Server: Packet received!");
-				if(previousBlock[0] != receivePacket.getData()[2] && previousBlock[1] != receivePacket.getData()[3]) {
-					//if here, then previous data block is different from current data block. NO DUPLICATE CASE. 
-					/**
-					 * Code to extract and write data to file.
-					 */
-					len = receivePacket.getLength();
-					byte[] filedata = new byte[len-4];//first 4 bytes in receivePacket are not data
-					for(int i=4;i<len;i++) {
-						filedata[i-4] = receivePacket.getData()[i];
-						}
-					
-					this.writeByte(filedata, os);		
-					////////get the block number..///////
-					previousBlock[0] = receivePacket.getData()[2];
-					previousBlock[1] = receivePacket.getData()[3]; 					
-					//print details
-					if(verbose==1) {
-						System.out.println("From host: " + receivePacket.getAddress());
-				        System.out.println("Host port: " + receivePacket.getPort());
-						System.out.println("Packet type: DATA Block");
-						System.out.println("Block number is: "+ receivePacket.getData()[2]+ " "+ receivePacket.getData()[3]);
-						System.out.println("Number of bytes: "+ len);
-					}
+			/**
+			 * code to form ack data block
+			 */
+			ack = new byte[4];
+			ack[0] = (byte) 0;
+			ack[1] = (byte) 4;
+			ack[2] = receivePacket.getData()[2];
+			ack[3] = receivePacket.getData()[3];
+			
+			sendPacket = new DatagramPacket(ack,ack.length,receivePacket.getAddress(),receivePacket.getPort());
+			
+			try {//send ACK block
+				sendReceiveSocket.send(sendPacket);
+				if(verbose==1) {
+					System.out.println("Client Connection Thread: sending ACK block");
+		       			System.out.println("Packet type: ACK Block");
+					System.out.println("Block number is: "+ receivePacket.getData()[2]+ " "+ receivePacket.getData()[3]);
 				}
-				
-				/**
-				 * code to form ack data block
-				 */
-				ack = new byte[4];
-				ack[0] = (byte) 0;
-				ack[1] = (byte) 4;
-				ack[2] = receivePacket.getData()[2];
-				ack[3] = receivePacket.getData()[3];
-				
-				sendPacket = new DatagramPacket(ack,ack.length,receivePacket.getAddress(),receivePacket.getPort());
-				
-				try {//send ACK block
-					sendReceiveSocket.send(sendPacket);
-					if(verbose==1) {
-						System.out.println("Client Connection Thread: sending ACK block");
-			       			System.out.println("Packet type: ACK Block");
-						System.out.println("Block number is: "+ receivePacket.getData()[2]+ " "+ receivePacket.getData()[3]);
-					}
-				}catch(IOException e) {
-					e.printStackTrace();
-					System.exit(1);
-				}
+			}catch(IOException e) {
+				e.printStackTrace();
+				System.exit(1);
 			}
+			
 			
         }
     }      
