@@ -46,7 +46,7 @@ public class ErrorSimulator {
 			//////////////////////////////RECEIVING FROM CLIENT//////////////////////////////////////////////////
 			byte data[] = new byte[516]; 
 			sendbackPacket = new DatagramPacket(data,data.length);//receive packet not overwritten to hold information necessary to send back to client
-			System.out.println("Error Simulator: Waiting for Packet.\n");
+			System.out.println("Error Simulator: Waiting for Packet from client...\n");
 			
 			try {//receive packet from client
 				receiveSocket.receive(sendbackPacket);
@@ -141,11 +141,11 @@ public class ErrorSimulator {
 			
 			
 			////RECEIVE PACKET FROM SERVER//////////////////////////////////////////////////////////////////////////////////////////////////////
-			System.out.println("Error Simulator: Waiting for Packet...\n");
+			System.out.println("Error Simulator: Waiting for Packet from server...\n");
 			byte[]msg = new byte [516];
 			receivePacket = new DatagramPacket(msg,msg.length);
 			try {//receive packet from server
-				sendReceiveSocket.receive(receivePacket);
+				receiveSocket.receive(receivePacket);
 			}catch(IOException e) {
 				e.printStackTrace();
 				System.exit(1);
