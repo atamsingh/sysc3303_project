@@ -8,6 +8,9 @@ public class ErrorSimulator {
 	DatagramSocket sendReceiveSocket, receiveSocket;
 	int verbose,errorblock,timeout;//error block is the block number to sim error on
 	boolean delay, dup, lose; 
+	TalkToServer serverlink;
+	TalkToClient clientlink;
+	byte eblocktype;
 	
 	public ErrorSimulator(int verbose,int error) {
 		try {
@@ -37,8 +40,32 @@ public class ErrorSimulator {
 			Scanner scan = new Scanner(System.in);
 			
 			errorblock = scan.nextInt();
+			
+			System.out.println("[ERROR SIM]Enter the block type you want the error to occur on\nEnter 1: RRQ block; 2: WRQ block; 3: DATA block; 4: ACK block");
+			int temp = scan.nextInt();
+			eblocktype = (byte) temp;
 			//scanner.close();
 		}
+		serverlink = new TalkToServer();
+		clientlink = new TalkToClient();
+	}
+	
+	public void printInfo(String s, DatagramPacket packet) {
+		System.out.println("From " + s + ": " + packet.getAddress());
+        System.out.println("Host port: " + packet.getPort());
+        if(packet.getData()[1]== (byte) 1) {
+        	System.out.println("Packet type: Read Request");
+        }else if(packet.getData()[1] == (byte)2){
+        	System.out.println("Packet type: Write Request");
+        }else if(packet.getData()[1] == (byte)3){
+        	System.out.println("Packet type: DATA BLOCK");
+        }else if(packet.getData()[1] == (byte)4){
+        	System.out.println("Packet type: ACK BLOCK");
+        }
+        if(packet.getData()[1] != (byte)1 || packet.getData()[1] != (byte)2) {
+        	System.out.println("Block number is: "+ packet.getData()[2]+ " "+ packet.getData()[3]);
+        }				
+		System.out.println("Number of bytes: "+ packet.getLength());
 	}
 	
 	public void receiveandSend() {
@@ -58,21 +85,7 @@ public class ErrorSimulator {
 			System.out.println("Error Simulator: Packet received");
 			//////print information //////////////
 			if(verbose==1) {
-				System.out.println("From Client: " + sendbackPacket.getAddress());
-		        System.out.println("Host port: " + sendbackPacket.getPort());
-		        if(sendbackPacket.getData()[1]== (byte) 1) {
-		        	System.out.println("Packet type: Read Request");
-		        }else if(sendbackPacket.getData()[1] == (byte)2){
-		        	System.out.println("Packet type: Write Request");
-		        }else if(sendbackPacket.getData()[1] == (byte)3){
-		        	System.out.println("Packet type: DATA BLOCK");
-		        }else if(sendbackPacket.getData()[1] == (byte)4){
-		        	System.out.println("Packet type: ACK BLOCK");
-		        }
-		        if(sendbackPacket.getData()[1] != (byte)1 || sendbackPacket.getData()[1] != (byte)2) {
-		        	System.out.println("Block number is: "+ sendbackPacket.getData()[2]+ " "+ sendbackPacket.getData()[3]);
-		        }				
-				System.out.println("Number of bytes: "+ sendbackPacket.getLength());
+				printInfo("Client", sendbackPacket);
 			}/////end of verbose if
 			
 			//////////////SEND PACKET FORMATION////////////////////////////////////////
@@ -89,56 +102,13 @@ public class ErrorSimulator {
 			}
 			
 			/////////////SENDING TO THE SERVER -------ERROR OP CHECKS----------
-			if(lose) {//if the lose packet operation is chosen.
-				
-				if(Commons.getBlockNumber(sendPacket)!=errorblock) {
-					//not block to simulate error on so send as usual
-					try {//send packet to server
-						System.out.println("Error Simulator: packet formed");
-						sendReceiveSocket.send(sendPacket);
-						System.out.println("Error Simulator: packet sent");
-					}catch(IOException e) {
-						e.printStackTrace();
-						System.exit(1);
-					}
-				}else {
-					System.out.println("Error simulator: Losing packet");
-				}				
-			}else {//lose packet operation is not true
-				
-				try {//send packet to server
-					System.out.println("Error Simulator: packet formed");
-					if(delay && Commons.getBlockNumber(sendPacket)==errorblock) {//if delay is true then make error sim sleep before sending
-						try {
-							System.out.println("Error simulator: delaying packet");
-							Thread.sleep(timeout);
-						}catch(InterruptedException t) {
-							t.printStackTrace();
-							System.exit(1);
-						}						
-					}
-					
-					if(dup && sendPacket.getData()[1] == (byte)3 && Commons.getBlockNumber(dupPacket)==errorblock) {//check if dup is true and if packet is a data block and if the block number is the block number for error simulation
-						sendReceiveSocket.send(dupPacket);//send previous packet again as duplicate.
-						dup = false; //turn of dup to avoid getting stuck here
-					}else {
-						sendReceiveSocket.send(sendPacket);
-						if(sendPacket.getData()[1] == 3) {//check if packet sent was a data block or ack
-							//only save data blocks as dups
-							dupPacket = sendPacket;
-						}
-					}
-					System.out.println("Error Simulator: packet sent");
-				}catch(IOException e) {
-					e.printStackTrace();
-					System.exit(1);
-				}
+			if(lose) {
+				losePacket("server");							
+			}else if(delay){
+				delayPacket("server");
+			}else if(dup) {
+				dupPacket("server");
 			}
-				
-				
-			
-			
-			
 			
 			////RECEIVE PACKET FROM SERVER//////////////////////////////////////////////////////////////////////////////////////////////////////
 			System.out.println("Error Simulator: Waiting for Packet from server...\n");
@@ -153,21 +123,7 @@ public class ErrorSimulator {
 			//////print information it received////////////////////////////////////////////////
 			System.out.println("Error Simulator: Packet received");
 			if(verbose==1) {
-				System.out.println("From Server: " + receivePacket.getAddress());
-		        System.out.println("Host port: " + receivePacket.getPort());
-		        if(receivePacket.getData()[1]== (byte) 1) {
-		        	System.out.println("Packet type: Read Request");
-		        }else if(receivePacket.getData()[1] == (byte)2){
-		        	System.out.println("Packet type: Write Request");
-		        }else if(receivePacket.getData()[1] == (byte)3){
-		        	System.out.println("Packet type: DATA BLOCK");
-		        }else if(receivePacket.getData()[1] == (byte)4){
-		        	System.out.println("Packet type: ACK BLOCK");
-		        }
-		        if(receivePacket.getData()[1] != (byte)1 || receivePacket.getData()[1] != (byte)2) {
-		        	System.out.println("Block number is: "+ receivePacket.getData()[2]+ " "+ receivePacket.getData()[3]);
-		        }				
-				System.out.println("Number of bytes: "+ receivePacket.getLength());
+				printInfo("Server",receivePacket);
 			}
 			
 			//////////////SEND PACKET FORMATION///////////////////////////////////////////////////////////////////
@@ -181,59 +137,84 @@ public class ErrorSimulator {
 			////////////////////SENDING BACK TO CLIENT ------ ERROR OP CHECKS/////////////////////////////////////
 			
 			if(lose) {
-				//if lose op is true
-				if(Commons.getBlockNumber(receivePacket)!=errorblock) {
-					//not block to simulate error on so send as usual
-					try {//send packet back to client
-						//////print information before sending
-						System.out.println("Error Simulator: packet formed");
-						sendReceiveSocket.send(sendPacket);
-						System.out.println("Error Simulator: packet sent");
-					}catch(IOException e) {
-						e.printStackTrace();
-						System.exit(1);
-					}
-				}else {
-					//block to simulate loss on, don't send anything
-					System.out.println("Error Simulator: Losing packet!");
-				}
-			}else {
-				//lose error operation is false
-				
-				try {//send packet back to client
-					System.out.println("Error Simulator: packet formed");
-					if(delay && Commons.getBlockNumber(sendPacket)==errorblock) {//if delay is true then make error sim sleep before sending
-						try {
-							System.out.println("Error simulator: delaying packet");
-							Thread.sleep(timeout);
-						}catch(InterruptedException t) {
-							t.printStackTrace();
-							System.exit(1);
-						}						
-					}
-					if(dup && sendPacket.getData()[1] == (byte)3 && Commons.getBlockNumber(dupPacket)==errorblock) {//check if dup is true and if packet is a data block and if the block number is the block number for error simulation
-						//if its a data block and dup is true 
-						sendReceiveSocket.send(dupPacket);
-						dup = false; //turn of dup to avoid getting stuck here
-					}else {
-						sendReceiveSocket.send(sendPacket);
-						if(sendPacket.getData()[1] == 3) {//check if packet sent was a data block or ack
-							//only save data blocks as dups
-							dupPacket = sendPacket;
-						}
-					}
-					System.out.println("Error Simulator: packet sent");
-				}catch(IOException e) {
-					e.printStackTrace();
-					System.exit(1);
-				}
+				losePacket("client");							
+			}else if(delay){
+				delayPacket("client");
+			}else if(dup) {
+				dupPacket("client");
+			}
+		}
+	}
+
+	
+
+	
+	public void losePacket(String destination) {
+		if(Commons.getBlockNumber(sendPacket)==errorblock && sendPacket.getData()[3]==eblocktype) {//check block number and block type
+			//dont send anything if current block number are type match the user specified ones
+			System.out.println("Error Simulator: Losing packet!");
+		}else {
+			//send as usual
+			if(destination == "server") {//sending to server
+				serverlink.sendServer(sendPacket);
+			}else {//sending to client
+				clientlink.sendClient(sendPacket);
 			}
 			
-			
-
 		}
-
 	}
+	
+	public void delayPacket(String destination) {
+		if(Commons.getBlockNumber(sendPacket)==errorblock && sendPacket.getData()[3]==eblocktype) {//check block number and block type
+			//sleep to simulate delay
+			System.out.println("Error Simulator: Delaying packet!");
+			try {
+				Thread.sleep(timeout);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			if(destination == "server") {//sending to server
+				serverlink.sendServer(sendPacket);
+			}else {//sending to client
+				clientlink.sendClient(sendPacket);
+			}
+			
+		}else {
+			//send as usual
+			if(destination == "server") {//sending to server
+				serverlink.sendServer(sendPacket);
+			}else {//sending to client
+				clientlink.sendClient(sendPacket);
+			}
+		}
+	}
+	
+	public void dupPacket(String destination) {
+		if(Commons.getBlockNumber(sendPacket)==errorblock && sendPacket.getData()[3]==eblocktype) {//check block number and block type
+			//send dupPacket
+			System.out.println("Error Simulator: Sending dup packet!");
+			
+			if(destination == "server") {//sending to server
+				serverlink.sendServer(dupPacket);
+			}else {//sending to client
+				clientlink.sendClient(dupPacket);
+			}
+			
+		}else {
+			//send as usual
+			
+			if(destination == "server") {//sending to server
+				serverlink.sendServer(sendPacket);
+			}else {//sending to client
+				clientlink.sendClient(sendPacket);
+			}
+			
+			dupPacket = sendPacket;
+		}
+	}
+		
 
 	@SuppressWarnings("resource")
 	public static void main(String[] args) {
