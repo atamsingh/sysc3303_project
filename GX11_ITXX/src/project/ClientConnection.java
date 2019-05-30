@@ -155,7 +155,7 @@ public class ClientConnection implements Runnable {
 		ack[2] = (byte) 0;
 		ack[3] = (byte) 0;
 		
-		sendPacket = new DatagramPacket(ack,ack.length,requestPacket.getAddress(),23);
+		sendPacket = new DatagramPacket(ack,ack.length,requestPacket.getAddress(),requestPacket.getPort());
 		try {//send ack 
 			System.out.println(sendPacket.getPort());
 			try {
@@ -226,7 +226,7 @@ public class ClientConnection implements Runnable {
 			ack[2] = receivePacket.getData()[2];
 			ack[3] = receivePacket.getData()[3];
 			
-			sendPacket = new DatagramPacket(ack,ack.length,receivePacket.getAddress(),23);
+			sendPacket = new DatagramPacket(ack,ack.length,receivePacket.getAddress(),receivePacket.getPort());
 			
 			try {//send ACK block
 				sendReceiveSocket.send(sendPacket);
