@@ -1,5 +1,6 @@
 package project;
 
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
@@ -7,8 +8,8 @@ import java.util.Scanner;
 
 public class Server {
 		
-	DatagramSocket receiveSocket;
-	DatagramPacket receivePacket;
+	public DatagramSocket receiveSocket;
+	public DatagramPacket receivePacket;
 	
 	/**
 	 * Constructor for the server listener class
@@ -23,6 +24,7 @@ public class Server {
 		}
 		
 	}
+	
 
 	private void closeSocket() {
 		receiveSocket.close();
@@ -36,7 +38,13 @@ public class Server {
 		
 		String userInput = "";
 		Server server = new Server();
-		Thread requestListenerThread = new Thread(new RequestListener(server.getReceiveSocket(), verbose));
+		try {
+			server.receiveSocket.receive(server.receivePacket);
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		Thread requestListenerThread = new Thread(new RequestListener(server.getReceiveSocket(),server.receivePacket, verbose));
 		requestListenerThread.start();
 
 		try {

@@ -7,15 +7,17 @@ import java.net.DatagramSocket;
 public class RequestListener implements Runnable {
 
     DatagramSocket receiveSocket;
-    DatagramPacket sendPacket, receivePacket;
+    DatagramPacket receivePacket,forwardPacket;
+    
     int verbose_mode;
     boolean keepRunning = true;
     int max_connections = 60000;
     Thread[] all_threads = new Thread[max_connections];
     
-	public RequestListener(DatagramSocket receiveSocket, int v) {
+	public RequestListener(DatagramSocket receiveSocket, DatagramPacket forwardPacket, int v) {
         this.receiveSocket = receiveSocket;
         this.verbose_mode = v;
+        this.forwardPacket = forwardPacket;
 	}
 	
 
@@ -48,7 +50,7 @@ public class RequestListener implements Runnable {
 			
 			//packet received --create client connection thread--
 			System.out.println("Server: Packet received, creating client connection thread");
-			Thread clientConnectionThread = new Thread(new ClientConnection(receivePacket, this.verbose_mode));
+			Thread clientConnectionThread = new Thread(new ClientConnection(forwardPacket, this.verbose_mode));
 			if(all_threads.length <= this.max_connections) {
 				while(all_threads.length <= this.max_connections) {
 					// wait till a connection is open 
