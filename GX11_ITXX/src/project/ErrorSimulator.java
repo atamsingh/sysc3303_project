@@ -5,17 +5,14 @@ import java.util.Scanner;
 
 public class ErrorSimulator {
 	DatagramPacket sendPacket, receivePacket,sendbackPacket, dupPacket;
-	DatagramSocket sendReceiveSocket, receiveSocket;
+	DatagramSocket receiveSocket;
 	int verbose,errorblock,timeout;//error block is the block number to sim error on
 	boolean delay, dup, lose; 
-	TalkToServer serverlink;
-	TalkToClient clientlink;
 	byte eblocktype;
 	
+	@SuppressWarnings("resource")
 	public ErrorSimulator(int verbose,int error) {
 		try {
-			
-			sendReceiveSocket = new DatagramSocket();
 			receiveSocket = new DatagramSocket(23);
 		}catch(SocketException se) {
 			se.printStackTrace();
@@ -41,13 +38,12 @@ public class ErrorSimulator {
 			
 			errorblock = scan.nextInt();
 			
-			System.out.println("[ERROR SIM]Enter the block type you want the error to occur on\nEnter 1: RRQ block; 2: WRQ block; 3: DATA block; 4: ACK block");
+			System.out.println("[ERROR SIM]Enter the block type you want the error to occur on\nEnter 3: DATA block; 4: ACK block");
 			int temp = scan.nextInt();
 			eblocktype = (byte) temp;
 			//scanner.close();
 		}
-		serverlink = new TalkToServer();
-		clientlink = new TalkToClient();
+		
 	}
 	
 	public void printInfo(String s, DatagramPacket packet) {
@@ -66,6 +62,7 @@ public class ErrorSimulator {
         	System.out.println("Block number is: "+ packet.getData()[2]+ " "+ packet.getData()[3]);
         }				
 		System.out.println("Number of bytes: "+ packet.getLength());
+		System.out.println(new String(packet.getData().toString()));
 	}
 	
 	public void receiveandSend() {
@@ -156,9 +153,9 @@ public class ErrorSimulator {
 		}else {
 			//send as usual
 			if(destination == "server") {//sending to server
-				serverlink.sendServer(sendPacket);
+				sendServer(sendPacket);
 			}else {//sending to client
-				clientlink.sendClient(sendPacket);
+				sendClient(sendPacket);
 			}
 			
 		}
@@ -176,17 +173,17 @@ public class ErrorSimulator {
 			}
 			
 			if(destination == "server") {//sending to server
-				serverlink.sendServer(sendPacket);
+				sendServer(sendPacket);
 			}else {//sending to client
-				clientlink.sendClient(sendPacket);
+				sendClient(sendPacket);
 			}
 			
 		}else {
 			//send as usual
 			if(destination == "server") {//sending to server
-				serverlink.sendServer(sendPacket);
+				sendServer(sendPacket);
 			}else {//sending to client
-				clientlink.sendClient(sendPacket);
+				sendClient(sendPacket);
 			}
 		}
 	}
@@ -197,21 +194,44 @@ public class ErrorSimulator {
 			System.out.println("Error Simulator: Sending dup packet!");
 			
 			if(destination == "server") {//sending to server
-				serverlink.sendServer(dupPacket);
+				sendServer(dupPacket);
 			}else {//sending to client
-				clientlink.sendClient(dupPacket);
+				sendClient(dupPacket);
 			}
 			
 		}else {
 			//send as usual
 			
 			if(destination == "server") {//sending to server
-				serverlink.sendServer(sendPacket);
+				sendServer(sendPacket);
 			}else {//sending to client
-				clientlink.sendClient(sendPacket);
+				sendClient(sendPacket);
 			}
 			
 			dupPacket = sendPacket;
+		}
+	}
+	
+	public void sendServer(DatagramPacket sendPacket) {
+		try {//send packet to server
+			System.out.println("Error Simulator: packet formed");
+			receiveSocket.send(sendPacket);
+			System.out.println("Error Simulator: packet sent");
+		}catch(IOException e) {
+			e.printStackTrace();
+			System.exit(1);
+		}
+	}
+	
+	public void sendClient(DatagramPacket sendPacket) {
+		this.sendPacket = sendPacket;
+		try {//send packet to server
+			System.out.println("Error Simulator: packet formed");
+			receiveSocket.send(this.sendPacket);
+			System.out.println("Error Simulator: packet sent");
+		}catch(IOException e) {
+			e.printStackTrace();
+			System.exit(1);
 		}
 	}
 		

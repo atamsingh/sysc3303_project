@@ -31,7 +31,7 @@ public class RequestListener implements Runnable {
 			System.out.println("Server: Waiting for message...");
 			
 			//receive packet
-			try {
+			/*try {
 				receiveSocket.receive(receivePacket);
 			} catch (IOException e) {
 				// wait on all threads to be closed.
@@ -46,7 +46,7 @@ public class RequestListener implements Runnable {
 					}
 					System.exit(1);
 				}
-			}
+			}*/
 			
 			//packet received --create client connection thread--
 			System.out.println("Server: Packet received, creating client connection thread");

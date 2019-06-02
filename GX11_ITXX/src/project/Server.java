@@ -25,6 +25,18 @@ public class Server {
 		
 	}
 	
+	private DatagramPacket receive() {
+		byte[] msg = new byte [100];
+		receivePacket = new DatagramPacket(msg, msg.length);
+		try {
+			receiveSocket.receive(receivePacket);
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		return receivePacket;
+	}
+	
 
 	private void closeSocket() {
 		receiveSocket.close();
@@ -38,13 +50,8 @@ public class Server {
 		
 		String userInput = "";
 		Server server = new Server();
-		try {
-			server.receiveSocket.receive(server.receivePacket);
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		Thread requestListenerThread = new Thread(new RequestListener(server.getReceiveSocket(),server.receivePacket, verbose));
+		System.out.println("Server: Waiting for message...");
+		Thread requestListenerThread = new Thread(new RequestListener(server.getReceiveSocket(),server.receive(), verbose));
 		requestListenerThread.start();
 
 		try {
