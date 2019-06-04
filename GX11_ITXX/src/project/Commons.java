@@ -109,6 +109,22 @@ public class Commons {
 		return null;
 	}
 	
+	public DatagramPacket receiveRequest(DatagramSocket socket) {
+		return receiveRequest(socket, 100);
+	}
+	
+	public DatagramPacket receiveRequest(DatagramSocket socket, int size) {
+		// Sends the request packet provided to the socket and DOES NOT wait on a response.
+		try {
+			DatagramPacket receivePacket = new DatagramPacket(new byte[size], size);
+			socket.receive(receivePacket);
+			return receivePacket;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
 	public boolean sendRequest(DatagramSocket socket, DatagramPacket request) {
 		//	Sends the request packet provided to the socket and DOES NOT wait on a response.
 		try {
@@ -132,10 +148,11 @@ public class Commons {
 		return ack;
 	}
 	
-	public boolean confirmAcknowledgement(DatagramPacket r) {
-		// Confirms is the TFTP Acknowledgement received is correct.
-		// assuming no errors for iteration 1
-		return true;
+	public boolean confirmAcknowledgement(DatagramPacket r, int block_num) {
+		if (r == null)
+			return false;
+		else
+			return extractTwoBytes(r.getData(), 2) == block_num;
 	}
 	
 	private byte[] blockNumToTwoBytes(int block_number) {
@@ -213,5 +230,32 @@ public class Commons {
 		code += receivedMessage[1 + startPosition];
 
 		return code;
+	}
+
+/**
+ * Construct TFTP ERROR packet
+ * 
+ * @param errorCode
+ * @param errorMessage
+ * @return
+ */
+	public static byte[] constructError(int errorCode, String errorMessage) {
+		byte[] errorPacketHeaderBytes = new byte[4];
+		byte[] errorMessageBytes = errorMessage.getBytes();
+		byte[] errorPacket = new byte[4 + errorMessageBytes.length + 1];
+		byte[] zeroByte = new byte[1];
+		
+		errorPacketHeaderBytes[0] = 0;
+		errorPacketHeaderBytes[1] = 5;
+		errorPacketHeaderBytes[2] = (byte) (errorCode >> 8);
+		errorPacketHeaderBytes[3] = (byte) (errorCode);
+		
+		zeroByte[0] = 0;
+		
+		System.arraycopy(errorPacketHeaderBytes, 0, errorPacket, 0, errorPacketHeaderBytes.length);
+		System.arraycopy(errorMessageBytes, 0, errorPacket, errorPacketHeaderBytes.length, errorMessageBytes.length);
+		System.arraycopy(zeroByte, 0, errorPacket, errorPacket.length-1, 1);
+		
+		return errorPacket;
 	}
 }
