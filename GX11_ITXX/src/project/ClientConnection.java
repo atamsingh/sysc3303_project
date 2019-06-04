@@ -10,7 +10,9 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.util.Scanner;
 
@@ -67,7 +69,12 @@ public class ClientConnection implements Runnable {
        	//  Forgot errors are not a part of this iteration, currently WORK-IN-PROGRESS
         try {
             fileBytes = Files.readAllBytes(Paths.get(filename));
-        }  catch (IOException e) {
+		} catch (NoSuchFileException e) {
+			sendErrorPacket(1, "File not found");
+			return;
+		} catch (AccessDeniedException e) {
+			sendErrorPacket(2, "Access denied");
+		} catch (IOException e) {
             e.printStackTrace();
         }
 
@@ -278,16 +285,24 @@ public class ClientConnection implements Runnable {
 	 * @param bytes data to be written to file
 	 * @param os output stream to use
 	 */
-	public void writeByte(byte[] bytes,OutputStream os) 
-	    { 
-	        try { 
-	  
-	            // Starts writing the bytes in it 
-	            os.write(bytes);
-	        }catch (Exception e) { 
-	            System.out.println("Exception: " + e); 
-	        } 
-        }
+	public void writeByte(byte[] bytes, OutputStream os) { 
+	    try { 
+			// Starts writing the bytes in it 	            
+			os.write(bytes);
+	    } catch (Exception e) { 
+            System.out.println("Exception: " + e); 
+        } 
+	}
+	
+	private void sendErrorPacket(int i, String errorMessage) {
+		byte[] errorBytes = Commons.constructError(i, errorMessage);
+		try {
+			DatagramPacket errorPacket = new DatagramPacket(errorBytes, errorBytes.length, InetAddress.getLocalHost(), port);
+			sendReceiveSocket.send(errorPacket);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 
     private void closeSocket() {
         sendReceiveSocket.close();

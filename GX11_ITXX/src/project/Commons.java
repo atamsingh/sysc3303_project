@@ -231,4 +231,31 @@ public class Commons {
 
 		return code;
 	}
+
+/**
+ * Construct TFTP ERROR packet
+ * 
+ * @param errorCode
+ * @param errorMessage
+ * @return
+ */
+	public static byte[] constructError(int errorCode, String errorMessage) {
+		byte[] errorPacketHeaderBytes = new byte[4];
+		byte[] errorMessageBytes = errorMessage.getBytes();
+		byte[] errorPacket = new byte[4 + errorMessageBytes.length + 1];
+		byte[] zeroByte = new byte[1];
+		
+		errorPacketHeaderBytes[0] = 0;
+		errorPacketHeaderBytes[1] = 5;
+		errorPacketHeaderBytes[2] = (byte) (errorCode >> 8);
+		errorPacketHeaderBytes[3] = (byte) (errorCode);
+		
+		zeroByte[0] = 0;
+		
+		System.arraycopy(errorPacketHeaderBytes, 0, errorPacket, 0, errorPacketHeaderBytes.length);
+		System.arraycopy(errorMessageBytes, 0, errorPacket, errorPacketHeaderBytes.length, errorMessageBytes.length);
+		System.arraycopy(zeroByte, 0, errorPacket, errorPacket.length-1, 1);
+		
+		return errorPacket;
+	}
 }
