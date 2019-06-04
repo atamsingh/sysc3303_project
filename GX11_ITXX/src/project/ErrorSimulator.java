@@ -6,7 +6,7 @@ import java.util.Scanner;
 public class ErrorSimulator {
 	DatagramPacket sendPacket, receivePacket,sendbackPacket, dupPacket;
 	DatagramSocket receiveSocket;
-	int verbose,errorblock,timeout;//error block is the block number to sim error on
+	int verbose,errorblock,timeout,erroroperation;//error block is the block number to sim error on
 	boolean delay, dup, lose; 
 	byte eblocktype;
 	
@@ -43,6 +43,11 @@ public class ErrorSimulator {
 			eblocktype = (byte) temp;
 			//scanner.close();
 		}
+		System.out.println("ERROR TESTING\n");
+		System.out.println("Enter 0: normal operation, 1: invalid TFTP opcode on RRQ or WRQ");
+		Scanner scan = new Scanner(System.in);
+		erroroperation = scan.nextInt();
+		
 		
 	}
 	
@@ -62,7 +67,6 @@ public class ErrorSimulator {
         	System.out.println("Block number is: "+ packet.getData()[2]+ " "+ packet.getData()[3]);
         }				
 		System.out.println("Number of bytes: "+ packet.getLength());
-		System.out.println(new String(packet.getData().toString()));
 	}
 	
 	public void receiveandSend() {
@@ -89,6 +93,10 @@ public class ErrorSimulator {
 			try {//create packet to send to server
 				if(receivePacket == null) {//client connection thread not yet created so send to server to create threads
 					sendPacket = new DatagramPacket(data,sendbackPacket.getLength(),InetAddress.getLocalHost(),69);
+					//if error operation also change opcode
+					if(erroroperation == 1) {
+						sendPacket.getData()[1] = (byte) 8;
+					}
 				}else {
 					//get the port of the client connection thread. Now transmitting data
 					sendPacket = new DatagramPacket(data,sendbackPacket.getLength(),InetAddress.getLocalHost(),receivePacket.getPort());
@@ -98,6 +106,7 @@ public class ErrorSimulator {
 				System.exit(1);
 			}
 			
+			
 			/////////////SENDING TO THE SERVER -------ERROR OP CHECKS----------
 			if(lose) {
 				losePacket("server");							
@@ -105,6 +114,8 @@ public class ErrorSimulator {
 				delayPacket("server");
 			}else if(dup) {
 				dupPacket("server");
+			}else {
+				sendServer(sendPacket);
 			}
 			
 			////RECEIVE PACKET FROM SERVER//////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -139,6 +150,8 @@ public class ErrorSimulator {
 				delayPacket("client");
 			}else if(dup) {
 				dupPacket("client");
+			}else {
+				sendClient(sendPacket);
 			}
 		}
 	}
