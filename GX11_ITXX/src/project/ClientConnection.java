@@ -48,11 +48,34 @@ public class ClientConnection implements Runnable {
         	System.out.println("client is reading");
             readRequest = true;
             this.run();
-        } else {//write request
+        }else if(requestPacket.getData()[1] == (byte)2){//write request
         	System.out.println("client is writing");
             writeRequest = true;
             this.run();
+        }else {//opcode error 
+        	this.sendError(4,"Illegal opcode.");
         }
+    }
+    
+    public void sendError(int errorcode, String errorMessage) {
+    	byte[] msg = Commons.constructError(errorcode, errorMessage);
+    	DatagramPacket errorpacket= new DatagramPacket(msg,msg.length,requestPacket.getAddress(),requestPacket.getPort());
+    	try {
+			sendReceiveSocket.send(errorpacket);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	//exit the thread 
+    	closeSocket(); 
+    	System.exit(0);    	
+    }
+    
+    public void parseData(byte[] data) {
+    	if(data[1] != (byte)3) {
+    		closewrite(os);
+    		sendError(4,"Illegal packet type");
+    	}
     }
 
     public void readFromServer() {
@@ -177,13 +200,6 @@ public class ClientConnection implements Runnable {
         
         while (connection) {
 			receivePacket = new DatagramPacket(data,data.length);
-			/*try {
-				sendReceiveSocket.setSoTimeout(1000);
-			} catch (SocketException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}*/
-			// receive first block of data
 			try {
 				//wait till a packet is received
 				sendReceiveSocket.receive(receivePacket);
@@ -194,6 +210,7 @@ public class ClientConnection implements Runnable {
 			System.out.println("Server: Packet received!");
 			if(previousBlock[0] != receivePacket.getData()[2] && previousBlock[1] != receivePacket.getData()[3]) {
 				//if here, then previous data block is different from current data block. NO DUPLICATE CASE. 
+				parseData(receivePacket.getData());
 				/**
 				 * Code to extract and write data to file.
 				 */
@@ -238,9 +255,7 @@ public class ClientConnection implements Runnable {
 			}catch(IOException e) {
 				e.printStackTrace();
 				System.exit(1);
-			}
-			
-			
+			}			
         }
     }      
 
