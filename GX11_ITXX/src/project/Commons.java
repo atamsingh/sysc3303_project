@@ -23,12 +23,12 @@ public class Commons {
 		return example_text.getBytes();
 	}
 	
-	public byte intToByte(int example_int) {
+	public static byte intToByte(int example_int) {
 		//	Converts INT provided to Byte
 		return (byte)example_int;
 	}
 	
-	public byte[] concatenateByteArrays(byte[] a, byte[] b, boolean padded_zero) {
+	public static byte[] concatenateByteArrays(byte[] a, byte[] b, boolean padded_zero) {
 		//	merges 2 byte arrays. A is appended to B. Padded_zero boolean is an idicator for needing a zero byte b/w the arrays or not
 		// think [..a..] + [0Byte] + [..b..]
 		int len_a = a.length;
@@ -42,7 +42,7 @@ public class Commons {
 			for(int i = 0; i < len_a; i++) {
 				new_a[i] = a[i];
 			}
-			new_a[len_a] = this.intToByte(0);
+			new_a[len_a] = intToByte(0);
 		}else {
 			new_a = a;
 		}
@@ -168,25 +168,25 @@ public class Commons {
 		}
 	}
 	
-	private byte[] blockNumToTwoBytes(int block_number) {
+	private static byte[] blockNumToTwoBytes(int block_number) {
 		// Given an int block number, returns 2 bytes of block number to be used in ack packets.
 		byte[] block_num_data = new byte[2];
-		block_num_data[0] = this.intToByte(0);
-		block_num_data[1] = this.intToByte(block_number);
+		block_num_data[0] = intToByte(0);
+		block_num_data[1] = intToByte(block_number);
 		return block_num_data;
 	}
 	
-	public byte[] generateDataPacket(byte[] data, int block_number) {
+	public static byte[] generateDataPacket(byte[] data, int block_number) {
 		// Given data and block number, generates a data packet format byte for TFTP transfer.
 		byte[] header = new byte[2];
-		header[0] = this.intToByte(0);
-		header[1] = this.intToByte(3);
+		header[0] = intToByte(0);
+		header[1] = intToByte(3);
 		
-		byte[] block_data = this.blockNumToTwoBytes(block_number);
+		byte[] block_data = blockNumToTwoBytes(block_number);
 		
-		byte[] head = this.concatenateByteArrays(header,  block_data, false);
+		byte[] head = concatenateByteArrays(header,  block_data, false);
 		
-		return this.concatenateByteArrays(head, data, false);
+		return concatenateByteArrays(head, data, false);
 	}
 
 	// Extracts string from packets
@@ -205,7 +205,7 @@ public class Commons {
 		return extractString(receivedMessage, 2);
 	}
 
-	public byte[] getNextBlock(byte[] fileBytes, int blockNumber) {
+	public static byte[] getNextBlock(byte[] fileBytes, int blockNumber) {
 		int blockNumberForHeader = blockNumber + 1;
 		int start_index =  512 * blockNumber;
 		int end_index = 512 * blockNumberForHeader;
@@ -213,7 +213,7 @@ public class Commons {
 			end_index = fileBytes.length;
 		}
 		byte[] dataPacketBytes = Arrays.copyOfRange(fileBytes, start_index, end_index);
-		return this.generateDataPacket(dataPacketBytes, blockNumberForHeader);
+		return generateDataPacket(dataPacketBytes, blockNumberForHeader);
 	}
 
 	public static int getBlockNumber(DatagramPacket packet) {
@@ -257,5 +257,4 @@ public class Commons {
 		
 		return errorPacket;
 	}
-}
 }
