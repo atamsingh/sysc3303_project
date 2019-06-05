@@ -163,6 +163,7 @@ public class ErrorSimulator {
 		if(Commons.getBlockNumber(sendPacket)==errorblock && sendPacket.getData()[3]==eblocktype) {//check block number and block type
 			//dont send anything if current block number are type match the user specified ones
 			System.out.println("Error Simulator: Losing packet!");
+			lose = false;
 		}else {
 			//send as usual
 			if(destination == "server") {//sending to server
