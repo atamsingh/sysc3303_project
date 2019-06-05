@@ -116,6 +116,11 @@ public class ClientConnection implements Runnable {
 						System.out.println("Block number is: "+ receivePacket.getData()[2]+ " "+ receivePacket.getData()[3]);
 					}
 
+					if (Commons.getBlockNumber(receivePacket) < 0) {
+						sendErrorPacket(4, "Invalid block number");
+						return;
+					}
+
 					if (Commons.getBlockNumber(receivePacket) != blockNumber)
 						System.out.println("Discarded duplicate ACK packet");
 				} while (Commons.getBlockNumber(receivePacket) != blockNumber);
