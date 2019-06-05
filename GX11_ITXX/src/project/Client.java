@@ -91,18 +91,18 @@ public class Client {
 	private byte[] generatePacket(String file_name, int opcode_int) {
 		this.logVerbose("creating request packet with opcode of " + opcode_int + ".");
 		byte[] opcode = new byte[2];
-		opcode[0] = common.intToByte(0);
-		opcode[1] = common.intToByte(opcode_int);
+		opcode[0] = Commons.intToByte(0);
+		opcode[1] = Commons.intToByte(opcode_int);
 		byte[] filename_bytes = common.stringToByte(file_name);
 		byte[] zero_byte = new byte[1];
-		zero_byte[0] = common.intToByte(0);
+		zero_byte[0] = Commons.intToByte(0);
 		this.logVerbose("assuming file mode of null");
 		byte[] mode_text = common.stringToByte("");
 		
-		byte[] a = common.concatenateByteArrays(opcode, filename_bytes, false);
-		byte[] b = common.concatenateByteArrays(a, mode_text, true);
+		byte[] a = Commons.concatenateByteArrays(opcode, filename_bytes, false);
+		byte[] b = Commons.concatenateByteArrays(a, mode_text, true);
 		
-		return common.concatenateByteArrays(b, zero_byte, false);
+		return Commons.concatenateByteArrays(b, zero_byte, false);
 	}
 	
 	private void writeFileData(String fileName, byte[] data_array) throws IOException { 
@@ -142,7 +142,7 @@ public class Client {
 			}
 			this.logVerbose("received packet " + blocks_received + "... ");
 			curr_response = common.filterPackage(responseFromServer);
-			all_data = common.concatenateByteArrays(all_data, curr_response, false);
+			all_data = Commons.concatenateByteArrays(all_data, curr_response, false);
 		}
 
 		this.logVerbose("last file packet received...");
@@ -161,7 +161,7 @@ public class Client {
 		}
 	}
 	
-	private void sendFileToServer(String file_name_to_read, InetAddress address, int port) {
+	public void sendFileToServer(String file_name_to_read, InetAddress address, int port) {
 		this.logVerbose("Reading " + file_name_to_read + " from client disk.");
 		byte[] file_data = this.getFileData(file_name_to_read);
 		int number_of_blocks = (int)Math.ceil(file_data.length / 512.0);
@@ -171,7 +171,7 @@ public class Client {
 			int end_block_index = ((i+1) * 512);
 			byte[] curr_data = Arrays.copyOfRange(file_data, start_block_index, end_block_index);
 			int curr_block_number = i + 1; // starts from 1
-			byte[] data_to_send = common.generateDataPacket(curr_data, curr_block_number);
+			byte[] data_to_send = Commons.generateDataPacket(curr_data, curr_block_number);
 			this.logVerbose("sending block " + curr_block_number + " from byte index " + start_block_index + " to " + end_block_index + ".");
 			DatagramPacket dataPacket = new DatagramPacket(data_to_send, data_to_send.length, address, port);
 			DatagramPacket responseFromServer = null; 

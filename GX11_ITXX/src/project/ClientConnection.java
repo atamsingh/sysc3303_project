@@ -10,6 +10,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
@@ -79,6 +80,7 @@ public class ClientConnection implements Runnable {
     }
 
     public void readFromServer() {
+    	blockNumber = -1;
         boolean connection = true;
         byte[]  fileBytes = null; 
         byte[]  dataBytes = null;
@@ -214,7 +216,7 @@ public class ClientConnection implements Runnable {
 			}
 			
 			System.out.println("Server: Packet received!");
-			if(previousBlock[0] != receivePacket.getData()[2] && previousBlock[1] != receivePacket.getData()[3]) {
+			if(previousBlock[0] != receivePacket.getData()[2] || previousBlock[1] != receivePacket.getData()[3]) {
 				//if here, then previous data block is different from current data block. NO DUPLICATE CASE. 
 				parseData(receivePacket.getData());
 				/**
