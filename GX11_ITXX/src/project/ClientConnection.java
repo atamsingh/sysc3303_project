@@ -56,11 +56,11 @@ public class ClientConnection implements Runnable {
             writeRequest = true;
             this.run();
         }else {//opcode error 
-        	this.sendError(4,"Illegal opcode.");
+        	this.sendErrorPacket(4,"Illegal opcode.");
         }
     }
     
-    public void sendError(int errorcode, String errorMessage) {
+    public void sendErrorPacket(int errorcode, String errorMessage) {
     	byte[] msg = Commons.constructError(errorcode, errorMessage);
     	DatagramPacket errorpacket= new DatagramPacket(msg,msg.length,requestPacket.getAddress(),requestPacket.getPort());
     	try {
@@ -77,7 +77,7 @@ public class ClientConnection implements Runnable {
     public void parseData(byte[] data) {
     	if(data[1] != (byte)3) {
     		closewrite(os);
-    		sendError(4,"Illegal packet type");
+    		sendErrorPacket(4, "Illegal packet type");
     	}
     }
 
