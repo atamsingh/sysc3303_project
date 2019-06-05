@@ -64,10 +64,11 @@ public class Client {
 			response = common.sendRequestAndWaitOnResponse(s, p, timeout);
 			if(response != null) {
 				common.print(response.getData(), "Response");
-				if(common.confirmAcknowledgement(response, block_num)) {
+				if(common.confirmAcknowledgement(response, block_num) && response.getData()[0] == (byte) 0 && response.getData()[1] == (byte) 4) {
 					return response;
 				}
 			}else {
+				response = null;
 				this.logVerbose("Received a NULL reponse. Trying again.");
 			}
 		}

@@ -208,8 +208,9 @@ public class ClientConnection implements Runnable {
 				for(int i=4;i<len;i++) {
 					filedata[i-4] = receivePacket.getData()[i];
 				}
+				common.print(filedata, "File Data Received");
+				this.writeByte(filedata, os);
 				
-				this.writeByte(filedata, os);		
 				////////get the block number..///////
 				previousBlock[0] = receivePacket.getData()[2];
 				previousBlock[1] = receivePacket.getData()[3]; 					
@@ -298,9 +299,7 @@ public class ClientConnection implements Runnable {
 	 */
 	public void writeByte(byte[] bytes,OutputStream os) 
 	    { 
-	        try { 
-	  
-	            // Starts writing the bytes in it 
+	        try {
 	            os.write(bytes);
 	        }catch (Exception e) { 
 	            System.out.println("Exception: " + e); 

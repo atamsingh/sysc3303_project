@@ -214,7 +214,7 @@ public class ErrorSimulator {
 		System.out.println("in dupe option");
 		System.out.println("BLOCKS received: " + Commons.getBlockNumber(sendPacket) + ", error block: "+ errorblock);
 		System.out.println("TYPES received: " + sendPacket.getData()[1] + ", error type: "+ eblocktype);
-		if(Commons.getBlockNumber(sendPacket)==errorblock && sendPacket.getData()[3]==eblocktype) {//check block number and block type
+		if(Commons.getBlockNumber(sendPacket)==errorblock && sendPacket.getData()[1]==eblocktype) {//check block number and block type
 			dup = false; // reset still already lost once.
 			//send dupPacket
 			System.out.println("Error Simulator: Sending dup packet!");
