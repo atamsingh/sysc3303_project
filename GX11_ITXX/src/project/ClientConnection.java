@@ -83,6 +83,7 @@ public class ClientConnection implements Runnable {
         byte[]  fileBytes = null; 
         byte[]  dataBytes = null;
         byte[] receiveBytes = new byte[100];
+        boolean retransmit = false; 
         DatagramPacket dataPacket;
         DatagramPacket receivePacket = new DatagramPacket(receiveBytes, receiveBytes.length);
         System.out.println("I am in read");
@@ -96,18 +97,22 @@ public class ClientConnection implements Runnable {
 
         while (connection) {
             blockNumber++; 
-
-            // Get next DATA packet
-            try {
-                dataBytes = Commons.getNextBlock(fileBytes, blockNumber);
-            } catch (Exception e) {
-                e.printStackTrace();
+            
+            if(!retransmit) {// if a retransmission send same packet again by skipping this
+            	 // Get next DATA packet
+                try {
+                    dataBytes = Commons.getNextBlock(fileBytes, blockNumber);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
+           
 
             // Construct and send DATA packet
             try {
                 dataPacket = new DatagramPacket(dataBytes, dataBytes.length, InetAddress.getLocalHost(), port);
                 sendReceiveSocket.send(dataPacket);
+                retransmit = false;
                 //sent DATA packet---print data
 				if(verbose==1) {
 					System.out.println("Client Connection Thread: sending packet");
@@ -137,6 +142,7 @@ public class ClientConnection implements Runnable {
 				} while (Commons.getBlockNumber(receivePacket) != blockNumber);
 			} catch (SocketTimeoutException e) {
 				blockNumber--;
+				retransmit = true;
 				System.out.println("Timed out, rolling back");
 			} catch (Exception e) {
                 System.out.println("Could not receive ACK");
