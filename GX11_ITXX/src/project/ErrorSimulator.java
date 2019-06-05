@@ -6,7 +6,7 @@ import java.util.Scanner;
 public class ErrorSimulator {
 	DatagramPacket sendPacket, receivePacket,sendbackPacket, dupPacket;
 	DatagramSocket receiveSocket;
-	int verbose,errorblock,timeout;//error block is the block number to sim error on
+	int verbose,errorblock,timeout,erroroperation;//error block is the block number to sim error on
 	boolean delay, dup, lose; 
 	byte eblocktype;
 	
@@ -27,8 +27,8 @@ public class ErrorSimulator {
 			delay = true; dup = false; lose = false;
 			System.out.println("[ERROR SIM]Enter the amount of time in seconds to delay for");
 			Scanner scanner = new Scanner(System.in);
-			timeout = scanner.nextInt();
-			timeout = timeout*1000;//change to milliseconds
+			 timeout = scanner.nextInt();
+			 timeout = timeout*1000;//change to milliseconds
 		}else if(error == 3) {
 			delay = false; dup = true; lose = false;
 		}
@@ -43,6 +43,11 @@ public class ErrorSimulator {
 			eblocktype = (byte) temp;
 			//scanner.close();
 		}
+		System.out.println("ERROR TESTING\n");
+		System.out.println("Enter 0: normal operation, 1: invalid TFTP opcode on RRQ or WRQ");
+		Scanner scan = new Scanner(System.in);
+		erroroperation = scan.nextInt();
+		
 		
 	}
 	
@@ -62,13 +67,8 @@ public class ErrorSimulator {
         	System.out.println("Block number is: "+ packet.getData()[2]+ " "+ packet.getData()[3]);
         }				
 		System.out.println("Number of bytes: "+ packet.getLength());
-		System.out.println(new String(packet.getData().toString()));
 	}
 	
-	
-	/**
-	 * 
-	 */
 	public void receiveandSend() {
 		while(true) {
 			//////////////////////////////RECEIVING FROM CLIENT//////////////////////////////////////////////////
@@ -92,11 +92,13 @@ public class ErrorSimulator {
 			//////////////SEND PACKET FORMATION////////////////////////////////////////
 			try {//create packet to send to server
 				if(receivePacket == null) {//client connection thread not yet created so send to server to create threads
-					System.out.println("sending to port 69");
 					sendPacket = new DatagramPacket(data,sendbackPacket.getLength(),InetAddress.getLocalHost(),69);
+					//if error operation also change opcode
+					if(erroroperation == 1) {
+						sendPacket.getData()[1] = (byte) 8;
+					}
 				}else {
 					//get the port of the client connection thread. Now transmitting data
-					System.out.println("sending to port "+receivePacket.getPort());
 					sendPacket = new DatagramPacket(data,sendbackPacket.getLength(),InetAddress.getLocalHost(),receivePacket.getPort());
 				}					
 			}catch(IOException e) {
@@ -104,18 +106,16 @@ public class ErrorSimulator {
 				System.exit(1);
 			}
 			
+			
 			/////////////SENDING TO THE SERVER -------ERROR OP CHECKS----------
 			if(lose) {
-				boolean lost = losePacket("server");
-				if(lost) {
-					continue;
-				}
+				losePacket("server");							
 			}else if(delay){
 				delayPacket("server");
 			}else if(dup) {
 				dupPacket("server");
 			}else {
-				sendPacket("server");
+				sendServer(sendPacket);
 			}
 			
 			////RECEIVE PACKET FROM SERVER//////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -136,7 +136,6 @@ public class ErrorSimulator {
 			
 			//////////////SEND PACKET FORMATION///////////////////////////////////////////////////////////////////
 			try {//form packet to send back to client
-				System.out.println("sending to port 69");
 				sendPacket = new DatagramPacket(msg,receivePacket.getLength(),InetAddress.getLocalHost(),sendbackPacket.getPort());	
 			}catch(IOException e) {
 				e.printStackTrace();
@@ -152,22 +151,19 @@ public class ErrorSimulator {
 			}else if(dup) {
 				dupPacket("client");
 			}else {
-				sendPacket("client");
+				sendClient(sendPacket);
 			}
-			
-			System.out.println("---------");
 		}
 	}
+
 	
-	public boolean losePacket(String destination) {
-		System.out.println("in lose option");
-		System.out.println("BLOCKS received: " + Commons.getBlockNumber(sendPacket) + ", error block: "+ errorblock);
-		System.out.println("TYPES received: " + sendPacket.getData()[1] + ", error type: "+ eblocktype);
-		if(Commons.getBlockNumber(sendPacket)==errorblock && sendPacket.getData()[1]==eblocktype) {//check block number and block type
+
+	
+	public void losePacket(String destination) {
+		if(Commons.getBlockNumber(sendPacket)==errorblock && sendPacket.getData()[3]==eblocktype) {//check block number and block type
 			//dont send anything if current block number are type match the user specified ones
-			lose = false; // reset still already lost once.
 			System.out.println("Error Simulator: Losing packet!");
-			return true;
+			lose = false;
 		}else {
 			//send as usual
 			if(destination == "server") {//sending to server
@@ -175,16 +171,12 @@ public class ErrorSimulator {
 			}else {//sending to client
 				sendClient(sendPacket);
 			}
-			return false;
+			
 		}
 	}
 	
 	public void delayPacket(String destination) {
-		System.out.println("in delay option");
-		System.out.println("BLOCKS received: " + Commons.getBlockNumber(sendPacket) + ", error block: "+ errorblock);
-		System.out.println("TYPES received: " + sendPacket.getData()[1] + ", error type: "+ eblocktype);
-		if(Commons.getBlockNumber(sendPacket)==errorblock && sendPacket.getData()[1]==eblocktype) {//check block number and block type
-			delay = false; // reset still already lost once.
+		if(Commons.getBlockNumber(sendPacket)==errorblock && sendPacket.getData()[3]==eblocktype) {//check block number and block type
 			//sleep to simulate delay
 			System.out.println("Error Simulator: Delaying packet!");
 			try {
@@ -238,14 +230,6 @@ public class ErrorSimulator {
 		}
 	}
 	
-	public void sendPacket(String destination) {
-		if(destination == "server") {//sending to server
-			sendServer(sendPacket);
-		}else {//sending to client
-			sendClient(sendPacket);
-		}
-	}
-	
 	public void sendServer(DatagramPacket sendPacket) {
 		try {//send packet to server
 			System.out.println("Error Simulator: packet formed");
@@ -280,6 +264,7 @@ public class ErrorSimulator {
 		int error = scanner.nextInt();
 		ErrorSimulator h = new ErrorSimulator(verbose,error);
 		h.receiveandSend();
+
 	}
 
 }

@@ -8,14 +8,13 @@ import java.util.Arrays;
 
 public class Client {
 	
-	Commons common = null;
+	Commons common = new Commons("CLIENT");
 	ClientInputLoader input_grabber = null;
 	private DatagramSocket sendReceiveSocket;
 	final Duration timeout = Duration.ofSeconds(3);
 	final int max_retry = 10;
 	
 	public Client(ClientInputLoader input) {
-		common = new Commons("CLIENT");
 		this.input_grabber = input;
 		try {
 			sendReceiveSocket = new DatagramSocket();
