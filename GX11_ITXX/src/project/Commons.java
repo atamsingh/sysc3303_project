@@ -3,6 +3,8 @@ package project;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.time.Duration;
+import java.util.Arrays;
 
 public class Commons {
 
@@ -93,20 +95,28 @@ public class Commons {
 	public DatagramPacket sendRequestAndWaitOnResponse(DatagramSocket socket, DatagramPacket request) {
 		//	Sends the request packet provided to the socket and waits on a response.
 		// this func calls the same func with a different signature. this overwrite provides default 100 buffer size. 
-		return this.sendRequestAndWaitOnResponse(socket, request, 100);
+		return this.sendRequestAndWaitOnResponse(socket, request, 100, Duration.ofSeconds(600)); // a very very long time
 	}
 	
 	public DatagramPacket sendRequestAndWaitOnResponse(DatagramSocket socket, DatagramPacket request, int size) {
-		//	Sends the request packet provided to the socket and waits on a response.
+		return this.sendRequestAndWaitOnResponse(socket, request, 100, Duration.ofSeconds(600)); // a very very long time
+	}
+
+	public DatagramPacket sendRequestAndWaitOnResponse(DatagramSocket socket, DatagramPacket request, Duration timeout) {
+		return this.sendRequestAndWaitOnResponse(socket, request, 100, timeout);
+	}
+	
+	public DatagramPacket sendRequestAndWaitOnResponse(DatagramSocket socket, DatagramPacket request, int size, Duration timeout) {
 		try {
+			socket.setSoTimeout((int) timeout.toMillis());
 			socket.send(request);
 			DatagramPacket receivePacket = new DatagramPacket(new byte[size], size);
 			socket.receive(receivePacket);
 			return receivePacket;
 		} catch (IOException e) {
-			e.printStackTrace();
+			// TODO Auto-generated catch block
+			return null;
 		}
-		return null;
 	}
 	
 	public DatagramPacket receiveRequest(DatagramSocket socket) {
@@ -147,12 +157,15 @@ public class Commons {
 		
 		return ack;
 	}
-	
+
 	public boolean confirmAcknowledgement(DatagramPacket r, int block_num) {
-		if (r == null)
+		if (r == null) {
 			return false;
-		else
-			return extractTwoBytes(r.getData(), 2) == block_num;
+		}else {
+			int received = extractTwoBytes(r.getData(), 2);
+			System.out.println("block received is #" + received);
+			return received == block_num;
+		}
 	}
 	
 	private byte[] blockNumToTwoBytes(int block_number) {
@@ -192,28 +205,15 @@ public class Commons {
 		return extractString(receivedMessage, 2);
 	}
 
-	public static byte[] getNextBlock(byte[] fileBytes, int blockNumber) {
-		byte[] dataPacketBytes = new byte[516];
-		byte[] dataPacketHeaderBytes = new byte[4];
-
-		dataPacketHeaderBytes[0] = 0;
-		dataPacketHeaderBytes[1] = 3;
-		dataPacketHeaderBytes[2] = (byte) (blockNumber >> 8);
-		dataPacketHeaderBytes[3] = (byte) (blockNumber);
-		
-		 if (fileBytes.length - (blockNumber)*512 == -512) { 
-			return dataPacketHeaderBytes;
+	public byte[] getNextBlock(byte[] fileBytes, int blockNumber) {
+		int blockNumberForHeader = blockNumber + 1;
+		int start_index =  512 * blockNumber;
+		int end_index = 512 * blockNumberForHeader;
+		if(end_index > fileBytes.length){
+			end_index = fileBytes.length;
 		}
-		else if (fileBytes.length - (blockNumber)*512 < 0) {
-			dataPacketBytes = new byte[dataPacketHeaderBytes.length + (fileBytes.length - (blockNumber-1)*512)-2];
-			System.arraycopy(dataPacketHeaderBytes, 0, dataPacketBytes, 0, dataPacketHeaderBytes.length);
-			System.arraycopy(fileBytes, (blockNumber-1)*512, dataPacketBytes, dataPacketHeaderBytes.length, (fileBytes.length - (blockNumber-1)*512)-2);
-		}
-		else {
-			System.arraycopy(fileBytes, (blockNumber-1)*512, dataPacketBytes, dataPacketHeaderBytes.length, 512);
-		}
-
-		return dataPacketBytes;
+		byte[] dataPacketBytes = Arrays.copyOfRange(fileBytes, start_index, end_index);
+		return this.generateDataPacket(dataPacketBytes, blockNumberForHeader);
 	}
 
 	public static int getBlockNumber(DatagramPacket packet) {

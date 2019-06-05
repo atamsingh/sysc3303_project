@@ -27,8 +27,8 @@ public class ErrorSimulator {
 			delay = true; dup = false; lose = false;
 			System.out.println("[ERROR SIM]Enter the amount of time in seconds to delay for");
 			Scanner scanner = new Scanner(System.in);
-			 timeout = scanner.nextInt();
-			 timeout = timeout*1000;//change to milliseconds
+			timeout = scanner.nextInt();
+			timeout = timeout*1000;//change to milliseconds
 		}else if(error == 3) {
 			delay = false; dup = true; lose = false;
 		}
@@ -65,6 +65,10 @@ public class ErrorSimulator {
 		System.out.println(new String(packet.getData().toString()));
 	}
 	
+	
+	/**
+	 * 
+	 */
 	public void receiveandSend() {
 		while(true) {
 			//////////////////////////////RECEIVING FROM CLIENT//////////////////////////////////////////////////
@@ -88,9 +92,11 @@ public class ErrorSimulator {
 			//////////////SEND PACKET FORMATION////////////////////////////////////////
 			try {//create packet to send to server
 				if(receivePacket == null) {//client connection thread not yet created so send to server to create threads
+					System.out.println("sending to port 69");
 					sendPacket = new DatagramPacket(data,sendbackPacket.getLength(),InetAddress.getLocalHost(),69);
 				}else {
 					//get the port of the client connection thread. Now transmitting data
+					System.out.println("sending to port "+receivePacket.getPort());
 					sendPacket = new DatagramPacket(data,sendbackPacket.getLength(),InetAddress.getLocalHost(),receivePacket.getPort());
 				}					
 			}catch(IOException e) {
@@ -100,11 +106,16 @@ public class ErrorSimulator {
 			
 			/////////////SENDING TO THE SERVER -------ERROR OP CHECKS----------
 			if(lose) {
-				losePacket("server");							
+				boolean lost = losePacket("server");
+				if(lost) {
+					continue;
+				}
 			}else if(delay){
 				delayPacket("server");
 			}else if(dup) {
 				dupPacket("server");
+			}else {
+				sendPacket("server");
 			}
 			
 			////RECEIVE PACKET FROM SERVER//////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -125,6 +136,7 @@ public class ErrorSimulator {
 			
 			//////////////SEND PACKET FORMATION///////////////////////////////////////////////////////////////////
 			try {//form packet to send back to client
+				System.out.println("sending to port 69");
 				sendPacket = new DatagramPacket(msg,receivePacket.getLength(),InetAddress.getLocalHost(),sendbackPacket.getPort());	
 			}catch(IOException e) {
 				e.printStackTrace();
@@ -139,17 +151,23 @@ public class ErrorSimulator {
 				delayPacket("client");
 			}else if(dup) {
 				dupPacket("client");
+			}else {
+				sendPacket("client");
 			}
+			
+			System.out.println("---------");
 		}
 	}
-
 	
-
-	
-	public void losePacket(String destination) {
-		if(Commons.getBlockNumber(sendPacket)==errorblock && sendPacket.getData()[3]==eblocktype) {//check block number and block type
+	public boolean losePacket(String destination) {
+		System.out.println("in lose option");
+		System.out.println("BLOCKS received: " + Commons.getBlockNumber(sendPacket) + ", error block: "+ errorblock);
+		System.out.println("TYPES received: " + sendPacket.getData()[1] + ", error type: "+ eblocktype);
+		if(Commons.getBlockNumber(sendPacket)==errorblock && sendPacket.getData()[1]==eblocktype) {//check block number and block type
 			//dont send anything if current block number are type match the user specified ones
+			lose = false; // reset still already lost once.
 			System.out.println("Error Simulator: Losing packet!");
+			return true;
 		}else {
 			//send as usual
 			if(destination == "server") {//sending to server
@@ -157,12 +175,16 @@ public class ErrorSimulator {
 			}else {//sending to client
 				sendClient(sendPacket);
 			}
-			
+			return false;
 		}
 	}
 	
 	public void delayPacket(String destination) {
-		if(Commons.getBlockNumber(sendPacket)==errorblock && sendPacket.getData()[3]==eblocktype) {//check block number and block type
+		System.out.println("in delay option");
+		System.out.println("BLOCKS received: " + Commons.getBlockNumber(sendPacket) + ", error block: "+ errorblock);
+		System.out.println("TYPES received: " + sendPacket.getData()[1] + ", error type: "+ eblocktype);
+		if(Commons.getBlockNumber(sendPacket)==errorblock && sendPacket.getData()[1]==eblocktype) {//check block number and block type
+			delay = false; // reset still already lost once.
 			//sleep to simulate delay
 			System.out.println("Error Simulator: Delaying packet!");
 			try {
@@ -189,7 +211,11 @@ public class ErrorSimulator {
 	}
 	
 	public void dupPacket(String destination) {
+		System.out.println("in dupe option");
+		System.out.println("BLOCKS received: " + Commons.getBlockNumber(sendPacket) + ", error block: "+ errorblock);
+		System.out.println("TYPES received: " + sendPacket.getData()[1] + ", error type: "+ eblocktype);
 		if(Commons.getBlockNumber(sendPacket)==errorblock && sendPacket.getData()[3]==eblocktype) {//check block number and block type
+			dup = false; // reset still already lost once.
 			//send dupPacket
 			System.out.println("Error Simulator: Sending dup packet!");
 			
@@ -209,6 +235,14 @@ public class ErrorSimulator {
 			}
 			
 			dupPacket = sendPacket;
+		}
+	}
+	
+	public void sendPacket(String destination) {
+		if(destination == "server") {//sending to server
+			sendServer(sendPacket);
+		}else {//sending to client
+			sendClient(sendPacket);
 		}
 	}
 	
@@ -246,7 +280,6 @@ public class ErrorSimulator {
 		int error = scanner.nextInt();
 		ErrorSimulator h = new ErrorSimulator(verbose,error);
 		h.receiveandSend();
-
 	}
 
 }

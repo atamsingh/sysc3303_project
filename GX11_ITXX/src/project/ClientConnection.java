@@ -12,20 +12,20 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Scanner;
 
 public class ClientConnection implements Runnable {
 
     DatagramPacket requestPacket;
     DatagramSocket sendReceiveSocket;
     int blockNumber;
-    private String filename, mode;
+    private String filename;
     private int port;
     private boolean writeRequest = false;
     private boolean readRequest = false;
     OutputStream os;
     int verbose; 
-
+    Commons common = new Commons("Client Connection");
+    
     public ClientConnection(DatagramPacket requestPacket, int v) {
         this.requestPacket = requestPacket;
         blockNumber = 0;
@@ -56,6 +56,7 @@ public class ClientConnection implements Runnable {
     }
 
     public void readFromServer() {
+    	blockNumber = -1;
         boolean connection = true;
         byte[]  fileBytes = null; 
         byte[]  dataBytes = null;
@@ -76,7 +77,7 @@ public class ClientConnection implements Runnable {
 
             // Get next DATA packet
             try {
-                dataBytes = Commons.getNextBlock(fileBytes, blockNumber);
+                dataBytes = common.getNextBlock(fileBytes, blockNumber);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -109,9 +110,10 @@ public class ClientConnection implements Runnable {
 						System.out.println("Block number is: "+ receivePacket.getData()[2]+ " "+ receivePacket.getData()[3]);
 					}
 
-					if (Commons.getBlockNumber(receivePacket) != blockNumber)
-						System.out.println("Discarded duplicate ACK packet");
-				} while (Commons.getBlockNumber(receivePacket) != blockNumber);
+					if ((Commons.getBlockNumber(receivePacket) - 1) != (blockNumber)) 
+						System.out.println("Discarded duplicate ACK packet; expecting: "+blockNumber+ " received: " + receivePacket.getData()[2]+ " "+ receivePacket.getData()[3]);
+					
+				} while ((Commons.getBlockNumber(receivePacket) - 1) != blockNumber);
 			} catch (SocketTimeoutException e) {
 				blockNumber--;
 				System.out.println("Timed out, rolling back");
@@ -125,10 +127,13 @@ public class ClientConnection implements Runnable {
     }
 
     public void writeToServer() {
+    	System.out.println("I am in write");
         boolean connection = true;
         byte[] data = new byte[512];
         DatagramPacket sendPacket, receivePacket;
         byte[] previousBlock = new byte[2]; // holds previous block number
+        previousBlock[0] = (byte) 0;
+        previousBlock[1] = (byte) -1;
         String FILEPATH;
         //get the filepath from read request////////
 		int p1 = 0;//index position of the first 0 byte in the message 
@@ -192,7 +197,8 @@ public class ClientConnection implements Runnable {
 			}
 			
 			System.out.println("Server: Packet received!");
-			if(previousBlock[0] != receivePacket.getData()[2] && previousBlock[1] != receivePacket.getData()[3]) {
+			System.out.println("Previous Block: "+previousBlock[0] + ", "+ previousBlock[1]);
+			if(previousBlock[0] != receivePacket.getData()[2] || previousBlock[1] != receivePacket.getData()[3]) {
 				//if here, then previous data block is different from current data block. NO DUPLICATE CASE. 
 				/**
 				 * Code to extract and write data to file.
@@ -201,7 +207,7 @@ public class ClientConnection implements Runnable {
 				byte[] filedata = new byte[len-4];//first 4 bytes in receivePacket are not data
 				for(int i=4;i<len;i++) {
 					filedata[i-4] = receivePacket.getData()[i];
-					}
+				}
 				
 				this.writeByte(filedata, os);		
 				////////get the block number..///////
@@ -215,6 +221,13 @@ public class ClientConnection implements Runnable {
 					System.out.println("Block number is: "+ receivePacket.getData()[2]+ " "+ receivePacket.getData()[3]);
 					System.out.println("Number of bytes: "+ len);
 				}
+
+				if (common.filterPackage(receivePacket).length < 512) {
+					System.out.println("File received. Closing Connection.");
+	                connection = false;
+				}
+			}else {
+				System.out.println("Dupe Acknowledgements received");
 			}
 			
 			/**
@@ -239,9 +252,14 @@ public class ClientConnection implements Runnable {
 				e.printStackTrace();
 				System.exit(1);
 			}
-			
-			
         }
+        try {
+        	System.out.println("Closing OS");
+			os.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }      
 
     /**
@@ -307,5 +325,6 @@ public class ClientConnection implements Runnable {
         }
 
         closeSocket();
+        System.out.println("===============");
     }
 }
