@@ -5,87 +5,21 @@ import java.net.*;
 import java.nio.file.*;
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 public class Client {
 	
-	Commons common = null;
+	Commons common = new Commons("CLIENT");
 	ClientInputLoader input_grabber = null;
 	private DatagramSocket sendReceiveSocket;
-	final Duration timeout = Duration.ofSeconds(1);
+	final Duration timeout = Duration.ofSeconds(3);
 	final int max_retry = 10;
 	
 	public Client(ClientInputLoader input) {
-		common = new Commons("CLIENT");
 		this.input_grabber = input;
 		try {
 			sendReceiveSocket = new DatagramSocket();
 		} catch (SocketException e) {
 			e.printStackTrace();
-		}
-	}
-	
-	private DatagramPacket tryReceivingUntilSuccessful(DatagramSocket s, DatagramPacket p, int block_to_be_received, int size) {
-		// send request and wait on response
-		// we keep waiting until we hear something. Server should retransmit if something not ack'ed
-		DatagramPacket response = common.sendRequestAndWaitOnResponse(s, p, size);
-		// we received a response, lets make sure it's not null and is the block we except (the one after the last one)
-		while(response == null || Commons.getBlockNumber(response) != block_to_be_received) {
-			// while this condition is not met, keep waiting.
-			response = common.receiveRequest(s, size);
-		}
-		// once we have a response for the next block we expected, return
-		return response;
-	}
-	
-	private DatagramPacket trySendingUntilSuccessful(DatagramSocket s, DatagramPacket p, int block_num) {
-		return trySendingUntilSuccessful(s, p, block_num, 1);
-	}
-	
-	private DatagramPacket trySendingUntilSuccessful(DatagramSocket s, DatagramPacket p, int block_num, int counter) {
-		// if request counter higher than max try return null
-		if(counter > max_retry) {
-			return null;
-		}
-		// else create executor
-		ExecutorService executor = Executors.newSingleThreadExecutor();
-
-		// create future promise for request
-		@SuppressWarnings({ "unchecked", "rawtypes" })
-		final Future<DatagramPacket> handler = executor.submit(new Callable() {
-		    public DatagramPacket call() throws Exception {
-		        return common.sendRequestAndWaitOnResponse(s, p);
-		    }
-		});
-		
-		// try to call this
-		try {
-			this.logVerbose("making request to server and waiting (iteration: " + counter + ")...");
-			// wait for timeout to get response. 
-			DatagramPacket response = handler.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
-			// if no exception, confirm the acknowledgement is correct.
-			if(common.confirmAcknowledgement(response, block_num)) {
-				// if the ack received is correct, send response back/
-				this.logVerbose("Response received and acknowledged.");
-				executor.shutdownNow();
-				return response;
-			}else {
-				// if ack received is not for the block we anticipated, try sending again and only return when successful or max retry limit hit
-				this.logVerbose("Response received but is not for the block that needed to be acknowledged... sending again...");
-				executor.shutdownNow();
-				return trySendingUntilSuccessful(s, p, block_num, counter++);
-			}
-		} catch (TimeoutException | InterruptedException | ExecutionException e) {
-			// if timeout happens, or some other error occurs. clean everything and try sending again.
-			handler.cancel(true);
-			executor.shutdownNow();
-		    return trySendingUntilSuccessful(s, p, block_num, counter++);
 		}
 	}
 
@@ -99,6 +33,47 @@ public class Client {
 		common.print(message);
 	}
 	
+	private DatagramPacket tryReceivingUntilSuccessful(DatagramSocket s, DatagramPacket p, int block_to_be_received, int size) {
+		// send request and wait on response
+		// we keep waiting until we hear something. Server should retransmit if something not ack'ed
+		DatagramPacket response = common.sendRequestAndWaitOnResponse(s, p, size);
+		// we received a response, lets make sure it's not null and is the block we except (the one after the last one)
+		this.logVerbose("Packet received with Block Number " + Commons.getBlockNumber(response));
+		this.logVerbose("Expecting Blcok Number " + block_to_be_received);
+		common.print(response.getData(), "response received");
+		while(response == null || Commons.getBlockNumber(response) != block_to_be_received) {
+			// while this condition is not met, keep waiting.
+			response = common.receiveRequest(s, size);
+		}
+		// once we have a response for the next block we expected, return
+		return response;
+	}
+	
+	private DatagramPacket trySendingUntilSuccessful(DatagramSocket s, DatagramPacket p, int block_num) {
+		return trySendingUntilSuccessful(s, p, block_num, 1);
+	}
+	
+	private DatagramPacket trySendingUntilSuccessful(DatagramSocket s, DatagramPacket p, int block_num, int counter) {
+		DatagramPacket response = null;
+		while(response == null) {
+			if(counter > max_retry) {
+				return null;
+			}
+			counter++;
+			response = common.sendRequestAndWaitOnResponse(s, p, timeout);
+			if(response != null) {
+				common.print(response.getData(), "Response");
+				if(common.confirmAcknowledgement(response, block_num) && response.getData()[0] == (byte) 0 && response.getData()[1] == (byte) 4) {
+					return response;
+				}
+			}else {
+				response = null;
+				this.logVerbose("Received a NULL reponse. Trying again.");
+			}
+		}
+		return null;
+	}
+
 	private byte[] getFileData(String fileName) { 
 	    try {
 	    	String data = "";
@@ -116,18 +91,18 @@ public class Client {
 	private byte[] generatePacket(String file_name, int opcode_int) {
 		this.logVerbose("creating request packet with opcode of " + opcode_int + ".");
 		byte[] opcode = new byte[2];
-		opcode[0] = common.intToByte(0);
-		opcode[1] = common.intToByte(opcode_int);
+		opcode[0] = Commons.intToByte(0);
+		opcode[1] = Commons.intToByte(opcode_int);
 		byte[] filename_bytes = common.stringToByte(file_name);
 		byte[] zero_byte = new byte[1];
-		zero_byte[0] = common.intToByte(0);
+		zero_byte[0] = Commons.intToByte(0);
 		this.logVerbose("assuming file mode of null");
 		byte[] mode_text = common.stringToByte("");
 		
-		byte[] a = common.concatenateByteArrays(opcode, filename_bytes, false);
-		byte[] b = common.concatenateByteArrays(a, mode_text, true);
+		byte[] a = Commons.concatenateByteArrays(opcode, filename_bytes, false);
+		byte[] b = Commons.concatenateByteArrays(a, mode_text, true);
 		
-		return common.concatenateByteArrays(b, zero_byte, false);
+		return Commons.concatenateByteArrays(b, zero_byte, false);
 	}
 	
 	private void writeFileData(String fileName, byte[] data_array) throws IOException { 
@@ -161,13 +136,13 @@ public class Client {
 			byte[] ack_data = common.generateAcknowledgement(blocks_received);
 			DatagramPacket curr_ack = new DatagramPacket(ack_data, ack_data.length, responseFromServer.getAddress(), responseFromServer.getPort());
 			responseFromServer = null;
+			blocks_received++;
 			while(responseFromServer == null) {
 				responseFromServer = this.tryReceivingUntilSuccessful(this.sendReceiveSocket, curr_ack, blocks_received, 1024);
 			}
-			blocks_received++;
 			this.logVerbose("received packet " + blocks_received + "... ");
 			curr_response = common.filterPackage(responseFromServer);
-			all_data = common.concatenateByteArrays(all_data, curr_response, false);
+			all_data = Commons.concatenateByteArrays(all_data, curr_response, false);
 		}
 
 		this.logVerbose("last file packet received...");
@@ -186,8 +161,7 @@ public class Client {
 		}
 	}
 	
-	
-	private void sendFileToServer(String file_name_to_read, InetAddress address, int port) {
+	public void sendFileToServer(String file_name_to_read, InetAddress address, int port) {
 		this.logVerbose("Reading " + file_name_to_read + " from client disk.");
 		byte[] file_data = this.getFileData(file_name_to_read);
 		int number_of_blocks = (int)Math.ceil(file_data.length / 512.0);
@@ -197,7 +171,7 @@ public class Client {
 			int end_block_index = ((i+1) * 512);
 			byte[] curr_data = Arrays.copyOfRange(file_data, start_block_index, end_block_index);
 			int curr_block_number = i + 1; // starts from 1
-			byte[] data_to_send = common.generateDataPacket(curr_data, curr_block_number);
+			byte[] data_to_send = Commons.generateDataPacket(curr_data, curr_block_number);
 			this.logVerbose("sending block " + curr_block_number + " from byte index " + start_block_index + " to " + end_block_index + ".");
 			DatagramPacket dataPacket = new DatagramPacket(data_to_send, data_to_send.length, address, port);
 			DatagramPacket responseFromServer = null; 
@@ -210,7 +184,6 @@ public class Client {
 		this.logQuiet("File " + file_name_to_read + " sent over to server at " + address + ":" + port + ".");
 	}
 	
-	
 	private void writeRequest(String file_name_to_read, String file_name_to_write_to) throws UnknownHostException {
 		// generate write request header
 		this.logVerbose("Generating WRQ packet for write request");
@@ -219,7 +192,6 @@ public class Client {
 		this.logVerbose("Sent request to server for wrq.");
 		DatagramPacket responseFromServer = null;
 		while(responseFromServer == null) {
-			this.logVerbose("Tring to send ack...");
 			responseFromServer = this.trySendingUntilSuccessful(this.sendReceiveSocket, writeRequestPacket, 0); // block 0 for ack
 		}
 		this.logVerbose("Received Acknowledgement from the server.");
