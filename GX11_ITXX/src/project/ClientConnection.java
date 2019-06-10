@@ -22,11 +22,12 @@ public class ClientConnection implements Runnable {
     DatagramSocket sendReceiveSocket;
     int blockNumber;
     private String filename;
-    private int port;
+    private int port, numberOfBlocks;
     private boolean writeRequest = false;
     private boolean readRequest = false;
     OutputStream os;
-    int verbose; 
+	int verbose; 
+	boolean connection = true;
     Commons common = new Commons("CLIENT CONNECTION");
 
     public ClientConnection(DatagramPacket requestPacket, int v) {
@@ -82,15 +83,19 @@ public class ClientConnection implements Runnable {
     }
 
     public void readFromServer() {
-    	blockNumber = -1;
-        boolean connection = true;
+		blockNumber = -1;
         byte[]  fileBytes = null; 
         byte[]  dataBytes = null;
         byte[] receiveBytes = new byte[100];
         boolean retransmit = false; 
         DatagramPacket dataPacket;
         DatagramPacket receivePacket = new DatagramPacket(receiveBytes, receiveBytes.length);
-        System.out.println("I am in read");
+		System.out.println("I am in read");
+		try {
+			sendReceiveSocket.setSoTimeout(1000);
+		} catch (SocketException e) {
+			e.printStackTrace();
+		}
         // Read file into byte array, check if file exists, or if access is denied
        	//  Forgot errors are not a part of this iteration, currently WORK-IN-PROGRESS
         try {
@@ -102,11 +107,19 @@ public class ClientConnection implements Runnable {
 			sendErrorPacket(2, "Access denied");
 		} catch (IOException e) {
             e.printStackTrace();
-        }
+		}
+		
+		numberOfBlocks = (int) Math.ceil(fileBytes.length / 512);
 
-        while (connection) {
+        while (true) {
             blockNumber++; 
-            
+			
+			try {
+				dataBytes = Commons.getNextBlock(fileBytes, blockNumber);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+
             if(!retransmit) {// if a retransmission send same packet again by skipping this
             	 // Get next DATA packet
                 try {
@@ -145,9 +158,23 @@ public class ClientConnection implements Runnable {
 						System.out.println("Packet type: ACK BLOCK");
 						System.out.println("Block number is: "+ receivePacket.getData()[2]+ " "+ receivePacket.getData()[3]);
 					}
+					
+					if ((Commons.extractTwoBytes(receivePacket.getData(), 0) == 5)) {
+						return;
+					}
 
 					if (Commons.getBlockNumber(receivePacket) < 0) {
-						sendErrorPacket(4, "Invalid block number");
+						sendErrorPacket(4, "Illegal TFTP operation: Invalid block number");
+						return;
+					}
+
+					if (Commons.extractTwoBytes(receivePacket.getData(), 0) < 1 || Commons.extractTwoBytes(receivePacket.getData(), 0) > 5) {
+						sendErrorPacket(4, "Illegal TFTP operation: Invalid opcode");
+						deleteIncompleteFile();
+					}
+
+					if (receivePacket.getPort() != port && port != 0) {
+						sendErrorPacket(5, "Unknown transfer ID");
 						return;
 					}
 
@@ -162,12 +189,19 @@ public class ClientConnection implements Runnable {
                 System.out.println("Could not receive ACK");
             }
 
-            if (dataBytes.length < 516)
-                connection = false;
+            if (blockNumber >= numberOfBlocks) {
+				return;
+			}
         }
     }
 
-    public void writeToServer() {
+    private void deleteIncompleteFile() {
+		try {
+			Files.delete(Paths.get(filename));
+		} catch (IOException e) {}
+	}
+
+	public void writeToServer() {
         boolean connection = true;
         byte[] data = new byte[512];
         DatagramPacket sendPacket, receivePacket;
@@ -325,22 +359,26 @@ public class ClientConnection implements Runnable {
         }
 
     private void closeSocket() {
-        sendReceiveSocket.close();
-        System.out.println("Client Connection terminating\n");
+		sendReceiveSocket.close();
+		connection = false;
     }
 
     @Override
     public void run() {
-        try {
-            if (writeRequest) {
-                writeToServer();
-            } else if (readRequest) {
-                readFromServer();
-            }
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
+		if (connection) {
+			try {
+				if (writeRequest) {
+					writeToServer();
+				} else if (readRequest) {
+					readFromServer();
+				}
+			} catch (Exception e) {
+				System.out.println(e.getMessage());
+			}
 
-        closeSocket();
-    }
+			closeSocket();
+		}
+
+		System.out.println("Client Connection terminating\n");
+	}
 }

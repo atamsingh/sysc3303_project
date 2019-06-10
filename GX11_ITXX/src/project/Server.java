@@ -6,10 +6,10 @@ import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.util.Scanner;
 
-public class Server {
+public class Server implements Runnable {
 		
-	public DatagramSocket receiveSocket;
-	public DatagramPacket receivePacket;
+	public DatagramSocket receiveSocket, sendSocket;
+	public DatagramPacket receivePacket, sendPacket;
 	
 	/**
 	 * Constructor for the server listener class
@@ -44,14 +44,23 @@ public class Server {
 	}
 
 	public static void main(String[] args) {
+		Server server = new Server();
+		server.run();
+	}
+
+	private DatagramSocket getReceiveSocket() {
+		return receiveSocket;
+	}
+
+	@Override
+	public void run() {
+		String userInput = "";
 		Scanner scanner = new Scanner(System.in);
 		System.out.println("[SERVER]Enter 1 for verbose mode or 0 for quiet mode!: ");
 		int verbose = scanner.nextInt();//verbose mode will print out packet details
-		
-		String userInput = "";
-		Server server = new Server();
+
 		System.out.println("Server: Waiting for message...");
-		Thread requestListenerThread = new Thread(new RequestListener(server.getReceiveSocket(),server.receive(), verbose));
+		Thread requestListenerThread = new Thread(new RequestListener(getReceiveSocket(), receive(), verbose));
 		requestListenerThread.start();
 
 		try {
@@ -62,11 +71,7 @@ public class Server {
 			e.printStackTrace();
 		}
 		
-		server.closeSocket();
+		closeSocket();
 		scanner.close();
-	}
-
-	private DatagramSocket getReceiveSocket() {
-		return receiveSocket;
 	}
 }
