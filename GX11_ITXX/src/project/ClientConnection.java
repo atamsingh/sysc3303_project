@@ -10,21 +10,22 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Scanner;
 
 public class ClientConnection implements Runnable {
 
     DatagramPacket requestPacket;
     DatagramSocket sendReceiveSocket;
     int blockNumber;
-    private String filename, mode;
+    private String filename;
     private int port;
     private boolean writeRequest = false;
     private boolean readRequest = false;
     OutputStream os;
     int verbose; 
+    Commons common = new Commons("CLIENT CONNECTION");
 
     public ClientConnection(DatagramPacket requestPacket, int v) {
         this.requestPacket = requestPacket;
@@ -79,6 +80,7 @@ public class ClientConnection implements Runnable {
     }
 
     public void readFromServer() {
+    	blockNumber = -1;
         boolean connection = true;
         byte[]  fileBytes = null; 
         byte[]  dataBytes = null;
@@ -214,7 +216,7 @@ public class ClientConnection implements Runnable {
 			}
 			
 			System.out.println("Server: Packet received!");
-			if(previousBlock[0] != receivePacket.getData()[2] && previousBlock[1] != receivePacket.getData()[3]) {
+			if(previousBlock[0] != receivePacket.getData()[2] || previousBlock[1] != receivePacket.getData()[3]) {
 				//if here, then previous data block is different from current data block. NO DUPLICATE CASE. 
 				parseData(receivePacket.getData());
 				/**
@@ -224,9 +226,11 @@ public class ClientConnection implements Runnable {
 				byte[] filedata = new byte[len-4];//first 4 bytes in receivePacket are not data
 				for(int i=4;i<len;i++) {
 					filedata[i-4] = receivePacket.getData()[i];
-					}
+				}
 				
-				this.writeByte(filedata, os);		
+				common.print(filedata, "File Data Received");
+				this.writeByte(filedata, os);
+
 				////////get the block number..///////
 				previousBlock[0] = receivePacket.getData()[2];
 				previousBlock[1] = receivePacket.getData()[3]; 					
@@ -301,9 +305,7 @@ public class ClientConnection implements Runnable {
 	 */
 	public void writeByte(byte[] bytes,OutputStream os) 
 	    { 
-	        try { 
-	  
-	            // Starts writing the bytes in it 
+	        try {
 	            os.write(bytes);
 	        }catch (Exception e) { 
 	            System.out.println("Exception: " + e); 
