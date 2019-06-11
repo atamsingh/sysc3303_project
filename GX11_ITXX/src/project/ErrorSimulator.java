@@ -66,7 +66,6 @@ public class ErrorSimulator {
         	System.out.println("Block number is: "+ packet.getData()[2]+ " "+ packet.getData()[3]);
         }				
 		System.out.println("Number of bytes: "+ packet.getLength());
-		System.out.println(new String(packet.getData().toString()));
 	}
 	
 	
@@ -144,7 +143,6 @@ public class ErrorSimulator {
 			
 			//////////////SEND PACKET FORMATION///////////////////////////////////////////////////////////////////
 			try {//form packet to send back to client
-				System.out.println("sending to port 69");
 				sendPacket = new DatagramPacket(msg,receivePacket.getLength(),InetAddress.getLocalHost(),sendbackPacket.getPort());	
 			}catch(IOException e) {
 				e.printStackTrace();
