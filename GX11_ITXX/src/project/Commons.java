@@ -158,13 +158,16 @@ public class Commons {
 		return ack;
 	}
 
-	public boolean confirmAcknowledgement(DatagramPacket r, int block_num) {
-		if (r == null) {
-			return false;
-		}else {
-			int received = extractTwoBytes(r.getData(), 2);
-			System.out.println("block received is #" + received);
-			return received == block_num;
+	public int confirmAcknowledgement(DatagramPacket r, int block_num) {
+		if(r.getData()[0] == (byte) 0 && r.getData()[1] == (byte) 5) {
+			return -1; // is a error block
+		}
+		else if(r.getData()[0] == (byte) 0 && r.getData()[1] == (byte) 4) {
+			int received_block = extractTwoBytes(r.getData(), 2);
+			System.out.println("block received is #" + received_block);
+			return 1;
+		} else {
+			return 0;
 		}
 	}
 	
