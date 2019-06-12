@@ -10,6 +10,7 @@ public class Server {
 		
 	public DatagramSocket receiveSocket;
 	public DatagramPacket receivePacket;
+	public static int v = 0;
 	
 	/**
 	 * Constructor for the server listener class
@@ -18,6 +19,7 @@ public class Server {
 	public Server() {
 		try {
 			receiveSocket = new DatagramSocket(69);
+			receive();
 		} catch (SocketException se) {
 			se.printStackTrace();
 			System.exit(1);
@@ -25,16 +27,20 @@ public class Server {
 		
 	}
 	
-	private DatagramPacket receive() {
-		byte[] msg = new byte [100];
-		receivePacket = new DatagramPacket(msg, msg.length);
-		try {
-			receiveSocket.receive(receivePacket);
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+	private void receive() {
+		while(true) {
+			byte[] msg = new byte [100];
+			receivePacket = new DatagramPacket(msg, msg.length);
+			try {
+				receiveSocket.receive(receivePacket);
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			Thread requestListenerThread = new Thread(new RequestListener(receiveSocket,receivePacket, v));
+			requestListenerThread.start();
 		}
-		return receivePacket;
+		
 	}
 	
 
@@ -47,12 +53,11 @@ public class Server {
 		Scanner scanner = new Scanner(System.in);
 		System.out.println("[SERVER]Enter 1 for verbose mode or 0 for quiet mode!: ");
 		int verbose = scanner.nextInt();//verbose mode will print out packet details
-		
+		v = verbose;
 		String userInput = "";
 		Server server = new Server();
 		System.out.println("Server: Waiting for message...");
-		Thread requestListenerThread = new Thread(new RequestListener(server.getReceiveSocket(),server.receive(), verbose));
-		requestListenerThread.start();
+		
 
 		try {
 			while (!userInput.equals("shutdown")) {
