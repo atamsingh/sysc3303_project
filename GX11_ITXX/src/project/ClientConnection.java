@@ -137,7 +137,7 @@ public class ClientConnection implements Runnable {
 
             // Construct and send DATA packet
             try {
-                dataPacket = new DatagramPacket(dataBytes, dataBytes.length, InetAddress.getLocalHost(), port);
+                dataPacket = new DatagramPacket(dataBytes, dataBytes.length, requestPacket.getAddress(), port);
                 sendReceiveSocket.send(dataPacket);
                 retransmit = false;
                 //sent DATA packet---print data
