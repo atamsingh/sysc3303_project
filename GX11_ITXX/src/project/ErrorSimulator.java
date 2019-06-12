@@ -143,7 +143,7 @@ public class ErrorSimulator {
 			
 			//////////////SEND PACKET FORMATION///////////////////////////////////////////////////////////////////
 			try {//form packet to send back to client
-				sendPacket = new DatagramPacket(msg,receivePacket.getLength(),InetAddress.getLocalHost(),sendbackPacket.getPort());	
+				sendPacket = new DatagramPacket(msg,receivePacket.getLength(),sendbackPacket.getAddress(),sendbackPacket.getPort());	
 			}catch(IOException e) {
 				e.printStackTrace();
 				System.exit(1);
